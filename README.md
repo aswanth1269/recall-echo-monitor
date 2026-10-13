@@ -20,14 +20,51 @@ py -3 -m venv .venv
 # source .venv/bin/activate && pip install -r requirements.txt  # macOS/Linux
 ```
 
-Then add your LLM key for the Day 3 enrichment step:
+Then add an LLM key for the Day 3 enrichment step:
 
 ```bash
-cp .env.example .env     # then edit .env and set ANTHROPIC_API_KEY
+cp .env.example .env     # then edit .env and set LLM_API_KEY
+.venv/Scripts/python.exe -m src.llm --smoke   # verify it works
 ```
 
 `.env` is gitignored; `.env.example` is the tracked template. Never commit a
 real key.
+
+### The LLM step runs on a free tier
+
+[src/llm.py](src/llm.py) talks to any **OpenAI-compatible** provider, so the
+provider is three environment variables rather than a code change. The
+default is Google AI Studio, which needs no credit card:
+
+1. Get a key at <https://aistudio.google.com/apikey>.
+2. Put it in `.env` as `LLM_API_KEY`.
+3. Run the smoke check above.
+
+**Use a Flash-Lite model, not Flash.** As of late 2026 the Gemini Flash
+models are capped near 20 requests/day on the free tier while Flash-Lite is
+around 500/day — a 25x difference for this workload. Google no longer
+publishes these numbers, so confirm your own at
+<https://aistudio.google.com/rate-limit>. `.env.example` also carries ready
+blocks for Groq, Mistral and OpenRouter.
+
+Two habits the free tier forces, both already handled:
+
+- **Every response is cached on disk** (`data/interim/llm_cache/`, keyed by
+  model + prompt), so re-running a script costs zero requests and a crash
+  mid-way never loses completed work.
+- **Batch your records.** The binding limit is requests/day, not tokens, so
+  use `batched()` to send many recalls per call — 355 rows at `size=20` is
+  18 requests, not 355.
+
+```python
+from src.llm import complete, complete_json, batched
+
+for chunk in batched(recalls, 20):
+    rows = complete_json(f"Classify each defect...\n{chunk}")
+```
+
+Anthropic has no free tier, so `ANTHROPIC_API_KEY` is commented out in
+`.env.example`; the `anthropic` package stays installed if you later switch.
 
 ## Layout
 

@@ -4,5 +4,6 @@ rapidfuzz
 streamlit
 plotly
 python-dotenv
+openai
 anthropic
 pytest
