@@ -1,0 +1,8 @@
+duckdb
+pandas
+rapidfuzz
+streamlit
+plotly
+python-dotenv
+anthropic
+pytest

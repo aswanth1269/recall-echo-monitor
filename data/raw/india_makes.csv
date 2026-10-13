@@ -1,0 +1,11 @@
+make,segment,siam_entity_name,nhtsa_maketxt_expected,india_official_site,us_official_site,notes
+Toyota,mass_market,Toyota Kirloskar Motor Pvt Ltd,TOYOTA,https://www.toyotabharat.com/,https://www.toyota.com/,"SIAM entity also files Lexus recalls; resolve sub-brand from model text"
+Honda,mass_market,Honda Cars India Ltd,HONDA,https://www.hondacarindia.com/,https://automobiles.honda.com/,"Honda Motorcycle & Scooter India is a separate SIAM entity - excluded (two-wheelers)"
+Hyundai,mass_market,Hyundai Motor India Ltd,HYUNDAI,https://www.hyundai.com/in/en,https://www.hyundaiusa.com/,
+Kia,mass_market,Kia India Private Ltd,KIA,https://www.kia.com/in/,https://www.kia.com/us/en,"Only 1 SIAM recall on record - thin India-side sample"
+Nissan,mass_market,Nissan Motor India Pvt Ltd,NISSAN,https://www.nissan.in/,https://www.nissanusa.com/,
+Volkswagen,mass_market,Skoda Auto Volkswagen India Pvt. Ltd.,VOLKSWAGEN,https://www.volkswagen.co.in/,https://www.vw.com/,"Shared SIAM entity with Skoda/Audi/Porsche/Lamborghini - brand must come from model text"
+Mercedes-Benz,luxury,Mercedes Benz India Pvt Ltd,MERCEDES-BENZ,https://www.mercedes-benz.co.in/,https://www.mbusa.com/,"SIAM model field often uses internal platform codes (167, 205, 213) not marketing names"
+BMW,luxury,BMW India Pvt Ltd,BMW,https://www.bmw.in/,https://www.bmwusa.com/,"SIAM entity also files Mini recalls; resolve sub-brand from model text"
+Audi,luxury,Skoda Auto Volkswagen India Pvt. Ltd.,AUDI,https://www.audi.in/,https://www.audiusa.com/,"Filed under the Skoda Auto VW India entity - 35 rows identified via model text"
+Volvo,luxury,Volvo Auto India Pvt Ltd,VOLVO,https://www.volvocars.com/in/,https://www.volvocars.com/us/,"India lineup is now almost entirely EV/SUV - limited model overlap with US"

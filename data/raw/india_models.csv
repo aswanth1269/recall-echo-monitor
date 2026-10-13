@@ -1,0 +1,97 @@
+make,model,source_type,source_url,retrieved_on,notes
+Toyota,Glanza,official_site,https://www.toyotabharat.com/,2026-10-13,Rebadged Maruti Baleno
+Toyota,Urban Cruiser Taisor,official_site,https://www.toyotabharat.com/,2026-10-13,Rebadged Maruti Fronx
+Toyota,Rumion,official_site,https://www.toyotabharat.com/,2026-10-13,Rebadged Maruti Ertiga
+Toyota,Urban Cruiser Hyryder,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Urban Cruiser Ebella,official_site,https://www.toyotabharat.com/,2026-10-13,First Toyota BEV for India; launched 2026-05-29
+Toyota,Innova Crysta,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Innova Hycross,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Hilux,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Fortuner,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Legender,official_site,https://www.toyotabharat.com/,2026-10-13,Fortuner-derived; marketed as its own model
+Toyota,Camry,official_site,https://www.toyotabharat.com/,2026-10-13,Also sold in the US - good overlap candidate
+Toyota,Vellfire,official_site,https://www.toyotabharat.com/,2026-10-13,
+Toyota,Land Cruiser 300,official_site,https://www.toyotabharat.com/,2026-10-13,US name is Land Cruiser - name differs across markets
+Honda,City,official_site,https://www.hondacarindia.com/,2026-10-13,Listed on site as New City
+Honda,Amaze,official_site,https://www.hondacarindia.com/,2026-10-13,Site lists 3rd-gen and 2nd-gen Amaze side by side
+Honda,Elevate,official_site,https://www.hondacarindia.com/,2026-10-13,
+Honda,ZR-V,official_site,https://www.hondacarindia.com/,2026-10-13,Also sold in the US - good overlap candidate
+Hyundai,Bayon,official_site,https://www.hyundai.com/in/en,2026-10-13,Unveiled 2026-10-12 and on sale 2026-10-26; bookings open but not yet delivered
+Hyundai,Exter,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,Venue,official_site,https://www.hyundai.com/in/en,2026-10-13,Also sold in the US
+Hyundai,Venue N Line,official_site,https://www.hyundai.com/in/en,2026-10-13,Performance trim marketed as a separate model
+Hyundai,Creta,official_site,https://www.hyundai.com/in/en,2026-10-13,India best-seller; not sold in the US
+Hyundai,Creta N Line,official_site,https://www.hyundai.com/in/en,2026-10-13,Performance trim marketed as a separate model
+Hyundai,Creta Electric,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,Alcazar,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,Verna,official_site,https://www.hyundai.com/in/en,2026-10-13,Closest US equivalent is the Elantra - name differs across markets
+Hyundai,Aura,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,Grand i10 Nios,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,i20,official_site,https://www.hyundai.com/in/en,2026-10-13,
+Hyundai,i20 N Line,official_site,https://www.hyundai.com/in/en,2026-10-13,Performance trim marketed as a separate model
+Hyundai,Ioniq 5,official_site,https://www.hyundai.com/in/en,2026-10-13,Also sold in the US - good overlap candidate
+Kia,Sonet,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Syros,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Syros EV,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Seltos,official_site,https://www.kia.com/in/,2026-10-13,Listed on site as All New Seltos; also sold in the US
+Kia,Sorento,official_site,https://www.kia.com/in/,2026-10-13,Also sold in the US - good overlap candidate
+Kia,Carens,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Carens Clavis,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Carens Clavis EV,official_site,https://www.kia.com/in/,2026-10-13,
+Kia,Carnival,official_site,https://www.kia.com/in/,2026-10-13,Also sold in the US - good overlap candidate
+Kia,EV6,official_site,https://www.kia.com/in/,2026-10-13,Also sold in the US - good overlap candidate
+Kia,EV9,official_site,https://www.kia.com/in/,2026-10-13,Also sold in the US - good overlap candidate
+Nissan,Magnite,official_site,https://www.nissan.in/,2026-10-13,Not sold in the US
+Nissan,Tekton,official_site,https://www.nissan.in/,2026-10-13,New India SUV
+Nissan,Gravite,official_site,https://www.nissan.in/,2026-10-13,New India model
+Nissan,X-Trail,official_site,https://www.nissan.in/,2026-10-13,US equivalent is the Rogue - name differs across markets
+Volkswagen,Taigun,official_site,https://www.volkswagen.co.in/,2026-10-13,Not sold in the US
+Volkswagen,Virtus,official_site,https://www.volkswagen.co.in/,2026-10-13,Site lists Virtus Sport and Virtus Chrome trims separately
+Volkswagen,Tiguan,official_site,https://www.volkswagen.co.in/,2026-10-13,Listed on site as Tiguan R-Line; also sold in the US
+Volkswagen,Tayron,official_site,https://www.volkswagen.co.in/,2026-10-13,Replaced the Tiguan Allspace
+Volkswagen,Golf GTI,official_site,https://www.volkswagen.co.in/,2026-10-13,Also sold in the US - good overlap candidate
+Mercedes-Benz,A-Class Limousine,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site - mercedes-benz.co.in blocks automated fetches
+Mercedes-Benz,C-Class,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,E-Class,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,S-Class,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,Maybach S-Class,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,CLA,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,CLA Electric,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,CLE,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,GLA,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,GLC,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,GLE,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,GLS,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,G-Class,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,G-Class Electric,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,EQS,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+Mercedes-Benz,EQS SUV,secondary_source,https://www.carwale.com/mercedes-benz-cars/,2026-10-13,VERIFY on official site
+BMW,2 Series Gran Coupe,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site - bmw.in blocks automated fetches
+BMW,3 Series,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,3 Series Gran Limousine,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,India-specific long-wheelbase model
+BMW,5 Series,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,6 Series Gran Turismo,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,7 Series,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,X1,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,X3,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,X5,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,X7,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,Z4,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,iX1,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,i5,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+BMW,i7,secondary_source,https://www.carwale.com/bmw-cars/,2026-10-13,VERIFY on official site
+Audi,A4,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site - audi.in blocks automated fetches
+Audi,A6,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,Q3,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,Q3 Sportback,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,Q5,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,Q7,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,Q8,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,S5 Sportback,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,VERIFY on official site
+Audi,SQ8,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,Performance variant
+Audi,RS Q8,secondary_source,https://www.carwale.com/audi-cars/,2026-10-13,Performance variant
+Volvo,XC60,secondary_source,https://www.autocarindia.com/cars/volvo,2026-10-13,VERIFY on official site - volvocars.com/in blocks automated fetches
+Volvo,XC90,secondary_source,https://www.autocarindia.com/cars/volvo,2026-10-13,VERIFY on official site
+Volvo,EX30,secondary_source,https://www.autocarindia.com/cars/volvo,2026-10-13,VERIFY on official site
+Volvo,EC40,secondary_source,https://www.autocarindia.com/cars/volvo,2026-10-13,VERIFY on official site
+Volvo,EX90,secondary_source,https://www.autocarindia.com/cars/volvo,2026-10-13,Also sold in the US - good overlap candidate

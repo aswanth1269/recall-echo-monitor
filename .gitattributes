@@ -1,0 +1,8 @@
+# Normalise text by default, but never rewrite line endings in data files:
+# the SIAM snapshot and the NHTSA layout are source records, and CRLF
+# conversion would change their bytes and invalidate the hashes in
+# docs/SOURCES.md.
+* text=auto
+data/raw/siam_voluntary_recall_snapshot.html -text
+data/raw/RCL.txt -text
+data/raw/*.csv -text

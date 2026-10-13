@@ -1,0 +1,35 @@
+# --- Python ---
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+
+# --- Data ---
+# Raw third-party bulk downloads are large and re-downloadable; keep them local.
+data/raw/*.zip
+data/raw/*.txt
+!data/raw/RCL.txt
+data/raw/FLAT_RCL_POST_2010.txt
+data/raw/*.html
+# ...but keep the SIAM snapshot: it is the only record of what the
+# portal showed on the retrieval date, and siam_recalls.csv derives
+# from it. 1.4 MB.
+!data/raw/siam_voluntary_recall_snapshot.html
+data/interim/
+data/processed/
+*.duckdb
+*.duckdb.wal
+
+# --- Streamlit / OS ---
+.streamlit/secrets.toml
+.DS_Store
+Thumbs.db
