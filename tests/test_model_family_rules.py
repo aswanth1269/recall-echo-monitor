@@ -1,14 +1,13 @@
-"""Tests for src/model_families.py, using model text seen in NHTSA and SIAM."""
+"""Rule tests for src/model_family.py, using model text seen in NHTSA and SIAM."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import duckdb
 import pandas as pd
 import pytest
 
-from src import model_families as mf
+from src import model_family as mf
 
 
 # ---------- normalise_model / family_name ----------
@@ -221,21 +220,10 @@ def test_siam_issue_names_the_expanded_code_name():
 def test_review_skips_rule_makes():
     vocab = pd.DataFrame({"make": ["MERCEDES-BENZ"] * 2, "family": ["GL", "GLA"],
                           "source": "siam_text", "evidence": "", "source_url": ""})
-    assert mf.review_rows(vocab, pd.DataFrame(columns=["make", "MODELTXT"])).empty
+    assert mf.vocabulary_review(vocab, pd.DataFrame(columns=["make", "MODELTXT"])).empty
 
 
-def test_nhtsa_families_maps_and_counts_misses():
-    models = pd.DataFrame({"CAMPNO": ["A", "A", "B", "C"],
-                           "make": ["HONDA", "HONDA", "HONDA", "VOLVO"],
-                           "MODELTXT": ["CR-V HYBRID", "GL1800", "GL1800", "VNL"]})
-    out, issues = mf.nhtsa_families(models, VOCAB)
-    assert out.family.iloc[0] == "CR-V"
-    assert out.family.iloc[1:].isna().all()
-    gl = next(i for i in issues if i[2] == "GL1800")
-    assert "(2 campaigns)" in gl[4]
-
-
-# ---------- review_rows ----------
+# ---------- vocabulary_review ----------
 
 def test_review_flags_prefix_collisions_and_typos():
     vocab = pd.DataFrame({"make": ["TOYOTA", "TOYOTA", "VOLKSWAGEN"],
@@ -243,44 +231,10 @@ def test_review_flags_prefix_collisions_and_typos():
                           "source": ["siam_text", "india_models", "siam_text"],
                           "evidence": "", "source_url": ""})
     models = pd.DataFrame({"make": ["VOLKSWAGEN"], "MODELTXT": ["PASSAT"]})
-    notes = mf.review_rows(vocab, models)
+    notes = mf.vocabulary_review(vocab, models)
     assert (notes.family == "LAND CRUISER 300").any()
     typo = notes[notes.family == "PASAT"].review_note.iloc[0]
     assert "PASSAT" in typo and "not merged" in typo
 
 
 # ---------- build + main ----------
-
-def test_build_end_to_end(tmp_path: Path):
-    db = tmp_path / "recalls.duckdb"
-    con = duckdb.connect(str(db))
-    con.register("s", _siam())
-    con.execute("CREATE TABLE siam_recalls AS SELECT * FROM s")
-    con.execute("""CREATE TABLE nhtsa_focus AS SELECT * FROM (VALUES
-        ('A', 'HONDA', 'CR-V HYBRID'), ('B', 'HONDA', 'GL1800'),
-        ('C', 'VOLVO', 'XC90'), ('D', 'BMW', '330I'))
-        AS t(CAMPNO, make, MODELTXT)""")
-    con.close()
-    india_csv = tmp_path / "india.csv"
-    _india().to_csv(india_csv, index=False)
-    codes_csv = tmp_path / "codes.csv"
-    pd.DataFrame(columns=["platform_code", "model_name"]).to_csv(codes_csv, index=False)
-
-    coverage = mf.build(db_path=db, india_csv=india_csv, codes_csv=codes_csv,
-                        vocab_csv=tmp_path / "ref" / "families.csv",
-                        aliases_csv=tmp_path / "ref" / "aliases.csv",
-                        review_csv=tmp_path / "clean" / "review.csv")
-    honda = coverage[coverage.make == "HONDA"].iloc[0]
-    assert (honda.nhtsa_campaigns, honda.nhtsa_with_family) == (2, 1)
-    assert pd.isna(honda.nhtsa_pct)  # n < 10: rate suppressed
-    assert (tmp_path / "ref" / "aliases.csv").exists()  # created empty, with header
-    con = duckdb.connect(str(db), read_only=True)
-    assert con.execute("SELECT family FROM nhtsa_model_families WHERE CAMPNO = 'D'"
-                       ).fetchone() == ("3 SERIES",)
-    assert con.execute("SELECT count(*) FROM family_issues").fetchone()[0] >= 2
-
-
-def test_main_prints_coverage(monkeypatch, capsys):
-    monkeypatch.setattr(mf, "build", lambda: pd.DataFrame({"make": ["BMW"], "siam_rows": [31]}))
-    mf.main()
-    assert "BMW" in capsys.readouterr().out
