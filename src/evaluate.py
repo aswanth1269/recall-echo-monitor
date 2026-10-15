@@ -136,6 +136,19 @@ def _quote(text: str) -> list[str]:
     return [f"> {line}" if line else ">" for line in str(text).splitlines()]
 
 
+def _revision_lines(df: pd.DataFrame) -> list[str]:
+    """One bullet per ground-truth label revised after seeing matcher output."""
+    if "revision_note" not in df.columns:
+        return []
+    revised = df[df.revision_note.fillna("").str.strip() != ""]
+    if revised.empty:
+        return []
+    return ["- **Labels revised after seeing matcher output** "
+            f"({len(revised)} note(s) in the ground-truth file):",
+            *[f"  - `{r.pair_id}` (now `{r.label}`): {r.revision_note}"
+              for r in revised.itertuples(index=False)]]
+
+
 def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by: str,
                     gt_path: Path) -> str:
     df = result["pairs"]
@@ -153,8 +166,12 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
         "## Read this first", "",
         f"- **The TF-IDF baseline is flattered.** Its threshold (score >= "
         f"**{result['threshold']:.4f}**) was chosen to maximise F1 on these same "
-        f"{result['n']} pairs, so it is tuned on its own test set. The LLM matcher was not "
-        "tuned on them. A fair comparison needs a threshold picked on separate pairs.",
+        f"{result['n']} pairs, so it is tuned on its own test set. A fair comparison needs "
+        "a threshold picked on separate pairs.",
+        "- **The LLM matcher is flattered too.** Its prompt was sharpened after reviewing its "
+        "disagreements on these same pairs (2026-10-15, round 1: same component and position; "
+        "each quote from its own side), so it has also been tuned on its own test set.",
+        *_revision_lines(df),
         "- **`needs_review` counts as `different`** for the LLM matcher "
         f"({int(df.llm_raw.eq(NEEDS_REVIEW).sum())} pair(s) here).",
         f"- **Small sample.** With only {n_pos} positive pairs, recall has n={n_pos}. Per "

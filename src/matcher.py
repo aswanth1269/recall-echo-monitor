@@ -107,7 +107,11 @@ def build_prompt(batch: list[dict]) -> str:
         "For each pair decide whether the US recall and the INDIA recall describe the "
         "SAME defect on the SAME model family. A different model-year range is fine. A "
         "different component, a different failure, or a different model family means "
-        "\"different\".\n\n"
+        "\"different\".\n"
+        "The SAME defect needs the same failing component in the same position: a driver "
+        "airbag inflator and a passenger airbag inflator are DIFFERENT components even if "
+        "both may rupture; front and rear seat belts are different too. A shared symptom "
+        "alone (for example 'may catch fire') is not enough.\n\n"
         "Return ONLY JSON: {\"results\": [{\"pair_id\": \"...\", \"label\": \"same\" or "
         "\"different\", \"confidence\": number from 0 to 1, \"us_evidence\": \"...\", "
         "\"india_evidence\": \"...\"}]} with exactly one result per pair.\n"
@@ -115,6 +119,10 @@ def build_prompt(batch: list[dict]) -> str:
         "from that pair's US text, stating the US defect. india_evidence: the same from that "
         "pair's INDIA text. Copy - do not paraphrase, shorten inside the phrase, or fix "
         "spelling. Give evidence for \"different\" pairs too.\n"
+        "us_evidence must come from the lines under that pair's \"US:\" heading and "
+        "india_evidence from the lines under its \"INDIA:\" heading. The two sides usually "
+        "word the same defect differently, so never reuse one side's phrase as the other "
+        "side's evidence - before answering, check each quote occurs in its own block.\n"
     )
     blocks = [f"=== PAIR {p['pair_id']} (make {p['make']}) ===\nUS:\n{p['us_text']}\n"
               f"INDIA:\n{p['india_text']}" for p in batch]

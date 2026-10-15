@@ -147,6 +147,21 @@ def test_build_report_and_labels_untouched(tmp_path, gt_file):
     assert "### A-1" not in md and "### B-2" not in md       # agreed pairs not listed
 
 
+def test_report_lists_revised_labels_and_prompt_tuning(tmp_path, gt_file):
+    g = pd.read_csv(gt_file, dtype=str, keep_default_na=False)
+    g["revision_note"] = ["", "", "", "Round 1: kept different, platform note"]
+    g.to_csv(gt_file, index=False)
+    out_md = tmp_path / "eval.md"
+    ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out_md)
+    md = out_md.read_text(encoding="utf-8")
+    assert "LLM matcher is flattered too" in md
+    assert "`D-4` (now `different`): Round 1: kept different" in md
+
+
+def test_revision_lines_empty_without_notes():
+    assert ev._revision_lines(pd.DataFrame({"pair_id": ["a"], "label": ["same"]})) == []
+
+
 def test_build_refuses_to_write_over_ground_truth(tmp_path, gt_file):
     with pytest.raises(ValueError, match="refusing"):
         ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=gt_file)
