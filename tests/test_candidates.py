@@ -147,11 +147,80 @@ def test_score_pairs_empty_input():
 
 
 def test_top_k_keeps_three_and_breaks_ties_by_time_gap():
-    scored = pd.DataFrame({"CAMPNO": ["C"] * 5, "csv_row": [1, 2, 3, 4, 5],
+    scored = pd.DataFrame({"CAMPNO": ["C"] * 5, "make": ["HONDA"] * 5,
+                           "csv_row": [1, 2, 3, 4, 5],
                            "days_after_report": [400, -10, 50, 0, 5],
                            "score": [0.9, 0.5, 0.5, 0.1, 0.5]})
     top = cd.top_k(scored, k=3)
     assert top.csv_row.tolist() == [1, 5, 2] and top["rank"].tolist() == [1, 2, 3]
+
+
+def test_top_k_ranks_each_make_of_a_shared_campaign_separately():
+    # e.g. 16V045000 covers Audi Q5 and VW Tiguan: VW's weaker row must not be crowded out
+    scored = pd.DataFrame({"CAMPNO": ["16V045000"] * 5,
+                           "make": ["AUDI"] * 4 + ["VOLKSWAGEN"],
+                           "csv_row": [1, 2, 3, 4, 9], "days_after_report": [0] * 5,
+                           "score": [0.9, 0.8, 0.7, 0.6, 0.1]})
+    top = cd.top_k(scored, k=3)
+    assert top[top.make == "AUDI"].csv_row.tolist() == [1, 2, 3]
+    assert top[top.make == "VOLKSWAGEN"][["csv_row", "rank"]].values.tolist() == [[9, 1]]
+
+
+# ---------- text preparation ----------
+
+HONDA_US = ("Honda (American Honda Motor Co.) is recalling certain 2005-2006 Acura MDX and "
+            "Honda CR-V vehicles, 2005-2011 Honda Element vehicles. These vehicles are "
+            "equipped with certain air bag inflators assembled as part of the passenger "
+            "frontal air bag modules. The inflator may rupture.")
+HONDA_SIAM = ("During passenger side airbag deployment inflator body may get ruptured due to "
+              "excessive internal pressure.")
+
+
+@pytest.mark.parametrize("text, kept, dropped", [
+    (HONDA_US, "air bag inflators", "Acura MDX"),
+    ("Kia America, Inc. (Kia) is recalling certain 2022-2024 EV6 vehicles. The Integrated "
+     "Charging Control Unit (ICCU) may become damaged.", "ICCU", "EV6"),
+    ("Hyundai Motor America (Hyundai) recalled certain 2019-2021 Tucson vehicles on "
+     "September 4, 2020. On December 30, 2020, Hyundai expanded the recall population, and "
+     "added certain 2016-2018 Tucson vehicles. The HECU could corrode internally.",
+     "HECU could corrode", "Tucson"),
+    # a scope sentence that states the defect keeps its clause
+    ("BMW is recalling certain 2019 X5 vehicles that may have a fuel pump that fails.",
+     "fuel pump that fails", "X5"),
+])
+def test_strip_recall_scope_real_shapes(text, kept, dropped):
+    out = cd.strip_recall_scope(text)
+    assert kept in out and dropped not in out
+
+
+def test_strip_recall_scope_never_empties_text():
+    only_scope = "Honda is recalling certain 2019 Civic vehicles."
+    assert cd.strip_recall_scope(only_scope) == only_scope
+    assert cd.strip_recall_scope(None) == ""
+
+
+def test_normalise_text_merges_compounds_and_drops_years():
+    s = cd.normalise_text("Air Bags and SEAT BELT in 2019 models")
+    assert "airbag" in s and "seatbelt" in s and "2019" not in s
+
+
+def test_analyze_text_stems_and_drops_stopwords():
+    tokens = cd.analyze_text(HONDA_SIAM)
+    assert {"ruptur", "inflat", "airbag"} <= set(tokens)
+    assert "during" not in tokens and "may" not in tokens
+    assert "passeng airbag" in tokens                       # bigrams of stems
+    assert cd.analyze_text("ruptured") == cd.analyze_text("rupture")
+
+
+def test_preparation_lifts_honda_inflator_pair():
+    """The baseline scored this same-defect pair 0.018; it must now clearly beat noise."""
+    pairs = pd.DataFrame({"CAMPNO": ["17V029000"] * 2, "csv_row": [46, 99],
+                          "days_after_report": [0, 0]})
+    us = {"17V029000": cd._text("AIR BAGS:FRONTAL:PASSENGER SIDE:INFLATOR MODULE",
+                                cd.strip_recall_scope(HONDA_US))}
+    siam = {46: HONDA_SIAM, 99: "Steering column bolt may loosen over time."}
+    s = dict(zip(*cd.score_pairs(pairs, us, siam)[["csv_row", "score"]].values.T))
+    assert s[46] > 0.1 and s[99] == 0.0
 
 
 def test_build_ranks_identical_text_first_and_counts_window(built):
@@ -222,3 +291,13 @@ def test_real_pairs_same_make_window_and_no_null_dates():
         FROM candidate_pairs p JOIN siam_recalls s USING (csv_row)""").fetchone()
     assert (bad_make, outside, null_date) == (0, 0, 0)
     assert con.execute("SELECT max(rank) FROM candidate_pairs").fetchone()[0] <= 3
+    over = con.execute("""SELECT count(*) FROM (SELECT CAMPNO, make FROM candidate_pairs
+                          GROUP BY CAMPNO, make HAVING count(*) > 3)""").fetchone()[0]
+    assert over == 0                                     # top 3 per campaign AND make
+
+
+def test_real_campaign_make_rows_are_unique():
+    con = _real()
+    rows, distinct = con.execute("""SELECT count(*), count(DISTINCT (CAMPNO, make))
+                                    FROM india_relevant_campaigns""").fetchone()
+    assert rows == distinct

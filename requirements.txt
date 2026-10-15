@@ -2,6 +2,7 @@ duckdb
 pandas
 rapidfuzz
 scikit-learn
+snowballstemmer
 streamlit
 plotly
 python-dotenv
