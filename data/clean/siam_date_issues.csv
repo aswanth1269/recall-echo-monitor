@@ -1,0 +1,242 @@
+csv_row,column_name,raw_value,reason
+1,manufactured_from,11/05/2017,ambiguous day/month order
+2,manufactured_to,30/15/2015,not a real date
+3,manufactured_from,07/01/2007,ambiguous day/month order
+3,manufactured_to,07/01/2011,ambiguous day/month order
+4,manufactured_from,07/03/2020,ambiguous day/month order
+4,manufactured_to,07/03/2020,ambiguous day/month order
+7,manufactured_to,03-Dec-20,parsed but outside 1990..recall date
+10,manufactured_from,,blank in source
+10,manufactured_to,,blank in source
+17,manufactured_from,06-Aug-18 & 03-Aug-18,several dates or labelled text in one cell
+17,manufactured_to,23-Oct-18 & 24-Sep-18,several dates or labelled text in one cell
+18,manufactured_from,Jan-07 & Jan-08,several dates or labelled text in one cell
+18,manufactured_to,Jun-08 & Oct-08,several dates or labelled text in one cell
+25,manufactured_from,11-06-18,ambiguous day/month order
+25,manufactured_to,11-06-18,ambiguous day/month order
+26,manufactured_from,25-0518,unrecognised format (e.g. month-year or year only)
+26,manufactured_to,11-06-18,ambiguous day/month order
+27,manufactured_from,01-11-17,ambiguous day/month order
+30,manufactured_from,01-12-09,ambiguous day/month order
+30,manufactured_to,01-12-09,ambiguous day/month order
+32,manufactured_from,04/01/2019; 05/01/2019; 04/01/2019; 04/01/2019; 07/02/2019; 04/01/2019; 08/01/2019,several dates or labelled text in one cell
+32,manufactured_to,05/08/2019; 09/09/2019; 05/08/2019; 05/08/2019; 11/09/2020; 24/10/2019; 25/09/2020,several dates or labelled text in one cell
+33,manufactured_from,02-Jul-18; 02-Jul-18; 02-Jul-18; 03-Jul-18; 04-Jul-18; 04-Jul-18 & 05-Oct-18,several dates or labelled text in one cell
+33,manufactured_to,26-Dec-18; 26-Dec-18; 22-Dec-18; 26-Dec-18; 25-Dec-18; 07-Sep-18 & 22-Dec-18,several dates or labelled text in one cell
+34,manufactured_from,02/07/2018,ambiguous day/month order
+35,manufactured_from,2003,unrecognised format (e.g. month-year or year only)
+35,manufactured_to,2008 & 2011,several dates or labelled text in one cell
+36,manufactured_from,2007,unrecognised format (e.g. month-year or year only)
+36,manufactured_to,2007,unrecognised format (e.g. month-year or year only)
+37,manufactured_from,2003,unrecognised format (e.g. month-year or year only)
+37,manufactured_to,2003,unrecognised format (e.g. month-year or year only)
+38,manufactured_from,2004 & 2006,several dates or labelled text in one cell
+38,manufactured_to,2008,unrecognised format (e.g. month-year or year only)
+39,manufactured_from,2009 & 2011,several dates or labelled text in one cell
+39,manufactured_to,,blank in source
+40,manufactured_from,2008,unrecognised format (e.g. month-year or year only)
+40,manufactured_to,2013,unrecognised format (e.g. month-year or year only)
+41,manufactured_from,2007,unrecognised format (e.g. month-year or year only)
+41,manufactured_to,2008,unrecognised format (e.g. month-year or year only)
+42,manufactured_from,2010,unrecognised format (e.g. month-year or year only)
+42,manufactured_to,2012,unrecognised format (e.g. month-year or year only)
+45,manufactured_to,03-08-12,ambiguous day/month order
+46,manufactured_from,11-01-12,ambiguous day/month order
+47,manufactured_from,06-09-11,ambiguous day/month order
+47,manufactured_to,08-12-12,ambiguous day/month order
+81,manufactured_from,03/09/2016,ambiguous day/month order
+90,manufactured_from,30 JUNE 2021 ; 31 MAR 2021,several dates or labelled text in one cell
+92,manufactured_from,"CLE (236) - 2-Sep-24 , AMG CLE (236) - 12-Dec-24 , AMG C - Class (206) - 23-Oct-24",several dates or labelled text in one cell
+92,manufactured_to,"CLE (236) - (18-Mar-25 ), AMG CLE (236) - (18-Mar-25) , AMG C - Class (206) - (23-Nov-24)",several dates or labelled text in one cell
+93,manufactured_from,AMG C - Class (206087) - 20-Sep-23 ; AMG GLC (254387) - 17-Jul-24 ; GLC (254605) - 19-Sep-22,several dates or labelled text in one cell
+93,manufactured_to,AMG C - Class (206087) - 20-Sep-23 ; AMG GLC (254387) - 31-Jan-25 ; GLC (254605) - 19-Sep-22,several dates or labelled text in one cell
+94,manufactured_from,Viano (639813) : 8-Mar-04 & Viano (639815): 8-Jul-04,several dates or labelled text in one cell
+94,manufactured_to,Viano (639813) : 16-Dec-04 & Viano (639815) : 25-Feb-05,several dates or labelled text in one cell
+107,manufactured_from,Model 254 (GLC) : 07-10-22 ; Model 290 (AMG GT) : 05-10-22 ; Model 223 (S - Class): 20-07-22 ; Model 463 (G - Class) : 17-08-22 ; Model 213 (AMG E - Class): 09-10-21,several dates or labelled text in one cell
+107,manufactured_to,Model 223 (S - Class) : 29-09-23; Model 463 (G - Class): 20-12-22 ; Model 213 (AMG E - Class): 18-10-22,several dates or labelled text in one cell
+112,manufactured_from,03/04/2023,ambiguous day/month order
+113,manufactured_to,01/02/24,ambiguous day/month order
+117,manufactured_from,11-01-22,ambiguous day/month order
+121,manufactured_to,02-09-23,ambiguous day/month order
+122,manufactured_from,09-12-21,ambiguous day/month order
+124,manufactured_from,09-08-21,ambiguous day/month order
+125,manufactured_to,05-10-22,ambiguous day/month order
+133,manufactured_from,July 2020,unrecognised format (e.g. month-year or year only)
+133,manufactured_to,March 2023,unrecognised format (e.g. month-year or year only)
+134,manufactured_from,June 2022,unrecognised format (e.g. month-year or year only)
+134,manufactured_to,October 2023,unrecognised format (e.g. month-year or year only)
+135,manufactured_from,August 2021,unrecognised format (e.g. month-year or year only)
+135,manufactured_to,April 2023,unrecognised format (e.g. month-year or year only)
+136,manufactured_from,December 2019,unrecognised format (e.g. month-year or year only)
+136,manufactured_to,June 2023,unrecognised format (e.g. month-year or year only)
+137,manufactured_from,February 2020,unrecognised format (e.g. month-year or year only)
+137,manufactured_to,March 2024,unrecognised format (e.g. month-year or year only)
+149,manufactured_from,08/12/2022,ambiguous day/month order
+150,manufactured_from,10/04/2022,ambiguous day/month order
+150,manufactured_to,02/08/2022,ambiguous day/month order
+152,manufactured_to,4/01/2023,ambiguous day/month order
+155,manufactured_from,09/07/2018,ambiguous day/month order
+159,manufactured_from,03/12/2019,ambiguous day/month order
+162,manufactured_from,06/07/2011,ambiguous day/month order
+162,manufactured_to,06/07/2011,ambiguous day/month order
+163,manufactured_from,03/07/2006,ambiguous day/month order
+165,manufactured_to,06/08/2021,ambiguous day/month order
+181,manufactured_to,10/05/2022,ambiguous day/month order
+182,manufactured_to,10/01/2013,ambiguous day/month order
+183,manufactured_from,10/01/2019,ambiguous day/month order
+183,manufactured_to,11/12/2021,ambiguous day/month order
+184,manufactured_from,10/01/2007,ambiguous day/month order
+192,manufactured_from,02/07/2012,ambiguous day/month order
+194,manufactured_from,03/04/2021,ambiguous day/month order
+194,manufactured_to,03/04/2021,ambiguous day/month order
+196,manufactured_to,10/05/2021,ambiguous day/month order
+198,manufactured_from,11/02/2006,ambiguous day/month order
+199,manufactured_from,9/01/14,ambiguous day/month order
+199,manufactured_to,4/12/18,ambiguous day/month order
+200,manufactured_from,6/05/2019,ambiguous day/month order
+203,manufactured_to,,blank in source
+207,manufactured_from,6-Sep-18; 5-Apr-19; 22-Mar-19; 8-May-19; 3-Sep-20; 29-Jan-21; 28-Jun-19; 19-Sep-19; 4-Aug-20; 28-Aug-20,several dates or labelled text in one cell
+207,manufactured_to,28-Jan-21 10-Nov-20; 1-Feb-21; 13-Sep-19; 6-Feb-19; 29-May-20; 18-Jun-20; 26-Sep-19; 18-Sep-19,several dates or labelled text in one cell
+209,manufactured_from,10-Oct-18 and 29-Jun-20,several dates or labelled text in one cell
+209,manufactured_to,15-Dec-20 and 25-Jul-20,several dates or labelled text in one cell
+210,manufactured_from,25-Sep-18 and 05-Mar-18,several dates or labelled text in one cell
+213,manufactured_from,16-Jul-15 & 26-Jun-15,several dates or labelled text in one cell
+213,manufactured_to,08-Apr-16 & 12-Feb-16,several dates or labelled text in one cell
+216,manufactured_from,05/08/2020,ambiguous day/month order
+217,manufactured_to,11=Apr-17,unrecognised format (e.g. month-year or year only)
+219,manufactured_from,08-Aug-18; 20-Jun-18; 27-Aug-18 & 09-Jul-18,several dates or labelled text in one cell
+219,manufactured_to,20-Oct-18; 06-Oct-18; 17-Oct-18 & 02-Oct-18,several dates or labelled text in one cell
+220,manufactured_from,09-Jul-18 & 12-Jun-18,several dates or labelled text in one cell
+220,manufactured_to,02-Oct-18 & 21-Sep-18,several dates or labelled text in one cell
+222,manufactured_from,19-Sep-17 & 18-May-18,several dates or labelled text in one cell
+222,manufactured_to,27-Feb-19 & 27-Feb-19,several dates or labelled text in one cell
+223,manufactured_from,15-04-16; 31-08-16; 01-06-16; 01-06-16; 19-09-16 & 08-08-16,several dates or labelled text in one cell
+223,manufactured_to,17-12-18; 18-12-18; 02-11-18; 18-12-18; 11-01-19 & 17-12-18,several dates or labelled text in one cell
+224,manufactured_from,03-Aug-17 & 12-Apr-18,several dates or labelled text in one cell
+224,manufactured_to,05-Nov-18 & 06-Nov-18,several dates or labelled text in one cell
+227,manufactured_from,23-Apr-18; 24-Apr-18,several dates or labelled text in one cell
+227,manufactured_to,20-Aug-18; 12-Jun-18,several dates or labelled text in one cell
+228,manufactured_from,14-Jan-16; 4-Jan-17,several dates or labelled text in one cell
+228,manufactured_to,10-mar-18; 12-Jan-18,several dates or labelled text in one cell
+230,manufactured_from,17-Mar-12; 17-Nov-11; 18-Mar-14,several dates or labelled text in one cell
+230,manufactured_to,23-Jul-14; 25-Jun-16; 23-Sep-16,several dates or labelled text in one cell
+231,manufactured_from,12-Jan-16; 12-Jan-16; 12-Feb-16; 07-Jan-16; 09-Jan-16; 12-Feb-16,several dates or labelled text in one cell
+231,manufactured_to,04-Nov-17; 02-Oct-17; 07-Dec-17; 07-Dec-17; 05-Dec-17; 08-Dec-17,several dates or labelled text in one cell
+232,manufactured_from,07-Nov-16; 14-Nov-16; 07-Nov-16,several dates or labelled text in one cell
+232,manufactured_to,04-Feb-17; 19-Jan-17; 16-Dec-16,several dates or labelled text in one cell
+233,manufactured_from,07-Jan-15; 07-Jan-15; 15-Sep-15; 10-Jan-15; 08-Jan-15; 10-Aug-15,several dates or labelled text in one cell
+233,manufactured_to,14-Dec-15; 05-Nov-16; 14-Feb-17; 03-Dec-16; 01-May-17; 13-Nov-15,several dates or labelled text in one cell
+234,manufactured_from,4-Jan-14; 12-Jan-14; 12-Jan-14; 11-Jan-14; 10-Jan-14,several dates or labelled text in one cell
+234,manufactured_to,1-Dec-15; 5-Dec-15; 2-Dec-15; 6-Dec-15; 6-Dec-15,several dates or labelled text in one cell
+236,manufactured_from,15-Apr-14 ; 9-Mar-15,several dates or labelled text in one cell
+236,manufactured_to,5-Dec-17 ; 5-Nov-17,several dates or labelled text in one cell
+237,manufactured_from,8-Jan-13; 1-Jun-12; 17-Dec-13; 6-Nov-13; 11-Feb-14,several dates or labelled text in one cell
+237,manufactured_to,29-May-14; 6-Jun-14; 17-Dec-13; 13-Oct-14; 30-Sep-14,several dates or labelled text in one cell
+253,manufactured_from,01-12-21,ambiguous day/month order
+254,manufactured_to,01-04-25,ambiguous day/month order
+255,manufactured_from,2015,unrecognised format (e.g. month-year or year only)
+255,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+256,manufactured_from,09-01-20,ambiguous day/month order
+258,manufactured_from,09-01-20,ambiguous day/month order
+258,manufactured_to,12-06-24,ambiguous day/month order
+259,manufactured_from,09/01/2020,ambiguous day/month order
+260,manufactured_from,Aug'23,unrecognised format (e.g. month-year or year only)
+260,manufactured_to,Dec'23,unrecognised format (e.g. month-year or year only)
+261,manufactured_from,2022,unrecognised format (e.g. month-year or year only)
+261,manufactured_to,2023,unrecognised format (e.g. month-year or year only)
+262,manufactured_from,2007,unrecognised format (e.g. month-year or year only)
+262,manufactured_to,2014,unrecognised format (e.g. month-year or year only)
+263,manufactured_from,2020,unrecognised format (e.g. month-year or year only)
+263,manufactured_to,2020,unrecognised format (e.g. month-year or year only)
+264,manufactured_from,2019,unrecognised format (e.g. month-year or year only)
+264,manufactured_to,2023,unrecognised format (e.g. month-year or year only)
+265,manufactured_from,2019,unrecognised format (e.g. month-year or year only)
+265,manufactured_to,2021,unrecognised format (e.g. month-year or year only)
+266,manufactured_from,2018,unrecognised format (e.g. month-year or year only)
+266,manufactured_to,2022,unrecognised format (e.g. month-year or year only)
+267,manufactured_from,2012,unrecognised format (e.g. month-year or year only)
+267,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+268,manufactured_from,2008,unrecognised format (e.g. month-year or year only)
+268,manufactured_to,2013,unrecognised format (e.g. month-year or year only)
+269,manufactured_from,2017,unrecognised format (e.g. month-year or year only)
+269,manufactured_to,2022,unrecognised format (e.g. month-year or year only)
+270,manufactured_from,2021,unrecognised format (e.g. month-year or year only)
+270,manufactured_to,2022,unrecognised format (e.g. month-year or year only)
+271,manufactured_from,2019,unrecognised format (e.g. month-year or year only)
+271,manufactured_to,2021,unrecognised format (e.g. month-year or year only)
+272,manufactured_from,2012,unrecognised format (e.g. month-year or year only)
+272,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+273,manufactured_from,2020,unrecognised format (e.g. month-year or year only)
+273,manufactured_to,2020,unrecognised format (e.g. month-year or year only)
+274,manufactured_from,2019,unrecognised format (e.g. month-year or year only)
+274,manufactured_to,2020,unrecognised format (e.g. month-year or year only)
+275,manufactured_from,2015,unrecognised format (e.g. month-year or year only)
+275,manufactured_to,2019,unrecognised format (e.g. month-year or year only)
+276,manufactured_from,2011,unrecognised format (e.g. month-year or year only)
+276,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+277,manufactured_from,2016,unrecognised format (e.g. month-year or year only)
+277,manufactured_to,2018,unrecognised format (e.g. month-year or year only)
+278,manufactured_from,2014,unrecognised format (e.g. month-year or year only)
+278,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+279,manufactured_from,2005 ; 2005,several dates or labelled text in one cell
+279,manufactured_to,2009 ; 2011,several dates or labelled text in one cell
+280,manufactured_from,2016,unrecognised format (e.g. month-year or year only)
+280,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+281,manufactured_from,2016,unrecognised format (e.g. month-year or year only)
+281,manufactured_to,2018,unrecognised format (e.g. month-year or year only)
+282,manufactured_from,2011,unrecognised format (e.g. month-year or year only)
+282,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+283,manufactured_from,2012,unrecognised format (e.g. month-year or year only)
+283,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+284,manufactured_from,2015,unrecognised format (e.g. month-year or year only)
+284,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+285,manufactured_from,2009,unrecognised format (e.g. month-year or year only)
+285,manufactured_to,2010,unrecognised format (e.g. month-year or year only)
+286,manufactured_from,2010,unrecognised format (e.g. month-year or year only)
+286,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+287,manufactured_from,2012,unrecognised format (e.g. month-year or year only)
+287,manufactured_to,2017,unrecognised format (e.g. month-year or year only)
+288,manufactured_from,2015,unrecognised format (e.g. month-year or year only)
+288,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+289,manufactured_from,2010,unrecognised format (e.g. month-year or year only)
+289,manufactured_to,Jul-05,unrecognised format (e.g. month-year or year only)
+290,manufactured_from,2007,unrecognised format (e.g. month-year or year only)
+290,manufactured_to,2009,unrecognised format (e.g. month-year or year only)
+292,manufactured_from,2011,unrecognised format (e.g. month-year or year only)
+292,manufactured_to,2016,unrecognised format (e.g. month-year or year only)
+293,manufactured_from,2008,unrecognised format (e.g. month-year or year only)
+293,manufactured_to,2015,unrecognised format (e.g. month-year or year only)
+294,manufactured_from,2008,unrecognised format (e.g. month-year or year only)
+294,manufactured_to,2015,unrecognised format (e.g. month-year or year only)
+315,manufactured_to,9/08/2023,ambiguous day/month order
+317,manufactured_from,9/05/2023,ambiguous day/month order
+318,manufactured_from,02/04/2019,ambiguous day/month order
+318,manufactured_to,06/08/2019,ambiguous day/month order
+319,manufactured_from,12/02/2021,ambiguous day/month order
+319,manufactured_to,01/02/2023,ambiguous day/month order
+324,manufactured_from,,blank in source
+324,manufactured_to,,blank in source
+325,manufactured_from,04/02/2022,ambiguous day/month order
+325,manufactured_to,11/03/2022,ambiguous day/month order
+326,manufactured_to,11/03/2022,ambiguous day/month order
+329,manufactured_from,29-May-18 & 12-Dec-17,several dates or labelled text in one cell
+329,manufactured_to,29-May-18 29-Dec-17,unrecognised format (e.g. month-year or year only)
+330,manufactured_from,"13-Dec-18, 03-Apr-19, 03-Apr-19, 02-Apr-19, 03-Jul-18, 10-Aug-18, 06-Nov-18 & 21-Aug-19",several dates or labelled text in one cell
+330,manufactured_to,"17-Aug-19, 05-Jul-19, 28-Aug-19, 07-Jun-19, 20-Feb-19, 29-Mar-19, 10-Dec-18 & 06-Sep-19",several dates or labelled text in one cell
+331,manufactured_from,02-04-19,ambiguous day/month order
+334,manufactured_from,13-Nov-17; 13-Nov-17; 12-Dec-17; 06-Oct-17; 16-Oct-14; 17-Jun-18,several dates or labelled text in one cell
+334,manufactured_to,04-Apr-19; 02-Apr-19; 03-Apr-19; 27-Oct-19; 16-Oct-14; 02-Apr-19,several dates or labelled text in one cell
+339,manufactured_from,18-Jul-16 & 3-Oct-16,several dates or labelled text in one cell
+339,manufactured_to,22-Mar-18 & 22-Mar-18,several dates or labelled text in one cell
+340,manufactured_from,02-01-2013; 03-01-2013,several dates or labelled text in one cell
+340,manufactured_to,31-12-2013; 30-12-2013,several dates or labelled text in one cell
+350,manufactured_from,12/02/2019,ambiguous day/month order
+351,manufactured_from,01/06/2021,ambiguous day/month order
+352,manufactured_from,09-12-13; 17-12-13; 08-01-14; 12-05-15 & 02-12-15,several dates or labelled text in one cell
+352,manufactured_to,30-09-14; 30-09-16; 29-09-16; 26-04-16 & 25-04-16,several dates or labelled text in one cell
+353,manufactured_from,10-10-06; 10-06-10 & 30-11-09,several dates or labelled text in one cell
+353,manufactured_to,16-09-14; 20-04-12 & 24-11-11,several dates or labelled text in one cell
+354,manufactured_from,26-03-19; 23-01-19; 19-01-19; 29-01-19 & 25-04-19,several dates or labelled text in one cell
+354,manufactured_to,12-08-19; 27-09-19; 22-01-20; 09-03-20 & 02-03-20,several dates or labelled text in one cell
+355,manufactured_from,10-06-10 & 14-07-15,several dates or labelled text in one cell
+355,manufactured_to,07-11-16 & 17-11-16,several dates or labelled text in one cell
