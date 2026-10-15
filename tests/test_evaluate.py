@@ -1,0 +1,162 @@
+"""Tests for src/evaluate.py (synthetic database; never touches real labels)."""
+
+from __future__ import annotations
+
+import math
+from pathlib import Path
+
+import duckdb
+import pandas as pd
+import pytest
+
+from src import evaluate as ev
+
+
+# ---------- confusion / metrics / fmt_rate ----------
+
+def test_confusion_and_metrics():
+    truth = pd.Series(["same", "same", "different", "different", "same"])
+    pred = pd.Series(["same", "different", "same", "different", "same"])
+    c = ev.confusion(truth, pred)
+    assert c == {"tp": 2, "fp": 1, "fn": 1, "tn": 1}
+    m = ev.metrics(c)
+    assert m["precision"] == pytest.approx((2 / 3, 2, 3))
+    assert m["recall"] == pytest.approx((2 / 3, 2, 3))
+    assert m["f1"][1:] == (4, 6)
+
+
+def test_metrics_undefined_when_nothing_predicted():
+    m = ev.metrics({"tp": 0, "fp": 0, "fn": 3, "tn": 5})
+    assert math.isnan(m["precision"][0]) and m["recall"][1:] == (0, 3)
+
+
+@pytest.mark.parametrize("args, text", [
+    ((0.75, 3, 4), "3 / 4 (n=4 < 10, rate suppressed)"),
+    ((27 / 29, 27, 29), "27 / 29 = 0.931 (n=29)"),
+    ((float("nan"), 0, 0), "undefined (n=0)"),
+])
+def test_fmt_rate_shows_n_and_suppresses_small_n(args, text):
+    assert ev.fmt_rate(*args) == text
+
+
+# ---------- choose_threshold ----------
+
+def test_choose_threshold_maximises_f1():
+    scores = pd.Series([0.9, 0.5, 0.4, 0.1, 0.05])
+    truth = pd.Series(["same", "same", "different", "different", "different"])
+    t, f1 = ev.choose_threshold(scores, truth)
+    assert t == 0.5 and f1 == 1.0
+
+
+def test_choose_threshold_ties_go_to_higher_threshold():
+    scores = pd.Series([0.9, 0.2, 0.1])
+    truth = pd.Series(["same", "different", "different"])
+    assert ev.choose_threshold(scores, truth)[0] == 0.9
+
+
+# ---------- load_ground_truth / llm_predictions ----------
+
+def test_load_ground_truth_parses_ids_and_rejects_other_labels(tmp_path: Path):
+    p = tmp_path / "gt.csv"
+    pd.DataFrame({"pair_id": ["20V543000-81"], "label": ["same"]}).to_csv(p, index=False)
+    gt = ev.load_ground_truth(p)
+    assert (gt.CAMPNO.iloc[0], gt.csv_row.iloc[0]) == ("20V543000", 81)
+    pd.DataFrame({"pair_id": ["x-1"], "label": ["maybe"]}).to_csv(p, index=False)
+    with pytest.raises(ValueError, match="other than same/different"):
+        ev.load_ground_truth(p)
+
+
+def _db(tmp_path: Path) -> Path:
+    db = tmp_path / "recalls.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute("""CREATE TABLE matches AS SELECT * FROM (VALUES
+        ('A-1', 'same',         0.9, 'trim bars may detach',  'trim bar might separate', NULL),
+        ('B-2', 'different',    0.8, 'brake hose may leak',   'airbag may rupture',      NULL),
+        ('C-3', 'needs_review', 0.9, 'invented quote here',   'inflator may rupture',
+              'us_evidence not found in US text'),
+        ('D-4', 'same',         0.7, 'steering may shut off', 'power steering deactivated', NULL))
+        AS t(pair_id, label, confidence, us_evidence, india_evidence, review_reason)""")
+    con.execute("""CREATE TABLE candidate_pairs AS SELECT * FROM (VALUES
+        ('A', 1, 0.40), ('B', 2, 0.02), ('C', 3, 0.30), ('D', 4, 0.05))
+        AS t(CAMPNO, csv_row, score)""")
+    con.execute("""CREATE TABLE india_relevant_campaigns AS SELECT * FROM (VALUES
+        ('A', 'MB', ['BODY'], 'The rear door window trim bars may detach.', NULL),
+        ('B', 'MB', ['BRAKES'], 'The brake hose may leak.', NULL),
+        ('C', 'HONDA', ['AIR BAGS'], 'Inflators may explode.', NULL),
+        ('D', 'MB', ['STEERING'], 'Power steering may shut off.', NULL))
+        AS t(CAMPNO, make, components, DESC_DEFECT, CONEQUENCE_DEFECT)""")
+    con.execute("""CREATE TABLE siam_recalls AS SELECT * FROM (VALUES
+        (1, 'MB', 'GLE', 'The trim bar might separate.'),
+        (2, 'MB', 'GLE', 'The airbag may rupture.'),
+        (3, 'HONDA', 'Civic', 'The inflator may rupture.'),
+        (4, 'MB', 'C-Class', 'Power steering deactivated.'))
+        AS t(csv_row, make, model, defect_description)""")
+    con.close()
+    return db
+
+
+@pytest.fixture
+def gt_file(tmp_path: Path) -> Path:
+    p = tmp_path / "ground_truth.csv"
+    pd.DataFrame({"pair_id": ["A-1", "B-2", "C-3", "D-4"],
+                  "label": ["same", "different", "same", "different"],
+                  "reason": ["trim bar", "brake vs airbag", "inflator", "different platform"],
+                  "confidence": ["high", "high", "high", "low"],
+                  "labelled_by": "test labeller"}).to_csv(p, index=False)
+    return p
+
+
+def test_llm_predictions_count_needs_review_as_different(tmp_path, gt_file):
+    con = duckdb.connect(str(_db(tmp_path)), read_only=True)
+    p = ev.llm_predictions(con, ev.load_ground_truth(gt_file)).set_index("pair_id")
+    assert p.loc["C-3", "llm_raw"] == "needs_review" and p.loc["C-3", "llm_pred"] == "different"
+
+
+def test_llm_predictions_require_every_ground_truth_pair(tmp_path, gt_file):
+    con = duckdb.connect(str(_db(tmp_path)))
+    con.execute("DELETE FROM matches WHERE pair_id = 'D-4'")
+    with pytest.raises(ValueError, match="run python -m src.matcher"):
+        ev.llm_predictions(con, ev.load_ground_truth(gt_file))
+
+
+def test_baseline_scores_join_candidate_pairs(tmp_path, gt_file):
+    con = duckdb.connect(str(_db(tmp_path)), read_only=True)
+    s = ev.baseline_scores(con, ev.load_ground_truth(gt_file)).set_index("pair_id").score
+    assert s["A-1"] == pytest.approx(0.40)
+
+
+# ---------- evaluate / build / report ----------
+
+def test_build_report_and_labels_untouched(tmp_path, gt_file):
+    before = gt_file.read_bytes()
+    out_md = tmp_path / "reports" / "eval.md"
+    r = ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out_md)
+
+    assert gt_file.read_bytes() == before                     # labels never changed
+    assert r["llm"]["confusion"] == {"tp": 1, "fp": 1, "fn": 1, "tn": 1}
+    assert r["threshold"] == pytest.approx(0.30)              # best F1 on these pairs
+    assert r["baseline"]["confusion"] == {"tp": 2, "fp": 0, "fn": 0, "tn": 2}
+
+    md = out_md.read_text(encoding="utf-8")
+    assert "flattered" in md and "needs_review` counts as `different`" in md
+    assert "rate suppressed" in md and "test labeller" in md
+    # every disagreement appears with both texts
+    for pid, us, india in (("C-3", "Inflators may explode.", "The inflator may rupture."),
+                           ("D-4", "Power steering may shut off.", "Power steering deactivated.")):
+        assert f"### {pid}" in md and us in md and india in md
+    assert "### A-1" not in md and "### B-2" not in md       # agreed pairs not listed
+
+
+def test_build_refuses_to_write_over_ground_truth(tmp_path, gt_file):
+    with pytest.raises(ValueError, match="refusing"):
+        ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=gt_file)
+
+
+def test_main_prints_summary(monkeypatch, capsys):
+    c = {"tp": 1, "fp": 0, "fn": 0, "tn": 1}
+    monkeypatch.setattr(ev, "build", lambda: {"n": 2, "threshold": 0.3,
+                        "llm": {"confusion": c, "metrics": ev.metrics(c)},
+                        "baseline": {"confusion": c, "metrics": ev.metrics(c)}})
+    ev.main()
+    out = capsys.readouterr().out
+    assert "flatters the baseline" in out and "TP=1" in out
