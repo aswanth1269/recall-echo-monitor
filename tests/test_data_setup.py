@@ -82,7 +82,7 @@ def test_nhtsa_flat_file_parses_to_29_fields():
     with zipfile.ZipFile(NHTSA_ZIP) as z:
         (member,) = z.namelist()
         with z.open(member) as fh:
-            stream = io.TextIOWrapper(fh, encoding="latin-1", newline="")
+            stream = io.TextIOWrapper(fh, encoding="utf-8", newline="")
             for i, raw in enumerate(stream):
                 if i >= 5000:
                     break
@@ -98,7 +98,8 @@ def test_every_make_resolves_against_nhtsa_maketxt():
     with zipfile.ZipFile(NHTSA_ZIP) as z:
         (member,) = z.namelist()
         with z.open(member) as fh:
-            for raw in io.TextIOWrapper(fh, encoding="latin-1", newline=""):
+            # strict UTF-8 over the whole file: fails if the encoding ever changes
+            for raw in io.TextIOWrapper(fh, encoding="utf-8", newline=""):
                 fields = raw.rstrip("\r\n").split("\t")
                 if len(fields) == 29:
                     seen.add(fields[2].strip().upper())

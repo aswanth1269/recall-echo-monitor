@@ -31,7 +31,9 @@ Shape on the retrieval date:
 - 245,855 records. **Every record split to exactly 29 fields** on tab, so the
   file parses cleanly with no ragged rows.
 - Tab-delimited, no header row, no quoting. Dates are `YYYYMMDD`.
-- Not UTF-8 — decode as `latin-1` (field 20/22 free text carries high bytes).
+- UTF-8. Checked 2026-10-15: all 40,007 bytes above 0x7F decode as strict
+  UTF-8 with no errors. Do not use `latin-1`: it never raises, but it garbles
+  the curly quotes and dashes in 10,640 records without changing the row count.
 - 1,782 distinct `MAKETXT` values.
 - Field names and sizes are in `RCL.txt`; field 20 (`DESC_DEFECT`) and 22
   (`CORRECTIVE_ACTION`) were widened to 6000 chars and fields 28/29
@@ -39,6 +41,10 @@ Shape on the retrieval date:
 
 A record is one make/model/year within a campaign, not one campaign, so
 record counts are much larger than recall counts. `CAMPNO` is the campaign ID.
+
+The flat file has no over-the-air (OTA) field, so the OTA flag will come from
+the NHTSA recalls API, whose `overTheAirUpdate` boolean was confirmed on
+2026-10-15 at `https://api.nhtsa.gov/recalls/recallsByVehicle`.
 
 ### Join key check (run 2026-10-13)
 

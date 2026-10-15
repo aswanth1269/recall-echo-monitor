@@ -1,0 +1,168 @@
+make,family,source,evidence,source_url
+AUDI,A3,siam_text,siam csv_row: 277,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,A4,india_models;siam_text,india_models: A4 | siam csv_row: 282;296;297,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,A5,india_models;siam_text,india_models: S5 Sportback | siam csv_row: 270;271,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,A6,india_models;siam_text,india_models: A6 | siam csv_row: 264;266;274;278;283;296,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,A7,siam_text,siam csv_row: 264;266;278;296,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,A8,siam_text,siam csv_row: 270;271;272;273;276;296,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,E-TRON,siam_text,siam csv_row: 259,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,E-TRON GT,siam_text,siam csv_row: 261,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,Q2,siam_text,siam csv_row: 263,https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,Q3,india_models,india_models: Q3; Q3 Sportback,https://www.carwale.com/audi-cars/
+AUDI,Q5,india_models;siam_text,india_models: Q5 | siam csv_row: 282;284;296,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,Q7,india_models;siam_text,india_models: Q7 | siam csv_row: 260;296;298,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,Q8,india_models;siam_text,india_models: Q8; RS Q8; SQ8 | siam csv_row: 270;271,https://www.carwale.com/audi-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+AUDI,TT,siam_text,siam csv_row: 275,https://www.siam.in/siam-voluntary-recall.aspx
+BMW,1 SERIES,siam_text,siam csv_row: 2,https://www.siam.in/siam-voluntary-recall.aspx
+BMW,2 SERIES,india_models;siam_text,india_models: 2 Series Gran Coupe | siam csv_row: 6,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,3 SERIES,india_models;siam_text,india_models: 3 Series; 3 Series Gran Limousine | siam csv_row: 2;4;9;17;20;21;24,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,5 SERIES,india_models;siam_text,india_models: 5 Series | siam csv_row: 1;6;7;17;27,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,6 SERIES,india_models;siam_text,india_models: 6 Series Gran Turismo | siam csv_row: 11;13,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,7 SERIES,india_models;siam_text,india_models: 7 Series | siam csv_row: 5,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,8 SERIES,siam_text,siam csv_row: 7;13,https://www.siam.in/siam-voluntary-recall.aspx
+BMW,I5,india_models,india_models: i5,https://www.carwale.com/bmw-cars/
+BMW,I7,india_models,india_models: i7,https://www.carwale.com/bmw-cars/
+BMW,IX1,india_models,india_models: iX1,https://www.carwale.com/bmw-cars/
+BMW,X1,india_models;siam_text,india_models: X1 | siam csv_row: 2,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,X3,india_models;siam_text,india_models: X3 | siam csv_row: 1;2;6;14;22;29;31,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,X4,siam_text,siam csv_row: 1;14,https://www.siam.in/siam-voluntary-recall.aspx
+BMW,X5,india_models;siam_text,india_models: X5 | siam csv_row: 2;3;7;18;23,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,X6,siam_text,siam csv_row: 2;3;5;8;12;18,https://www.siam.in/siam-voluntary-recall.aspx
+BMW,X7,india_models;siam_text,india_models: X7 | siam csv_row: 5,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+BMW,Z4,india_models;siam_text,india_models: Z4 | siam csv_row: 10,https://www.carwale.com/bmw-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,ACCORD,siam_text,siam csv_row: 37;43;47;48;68;74,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,AMAZE,india_models;siam_text,india_models: Amaze | siam csv_row: 32;33;34;72;77,https://www.hondacarindia.com/ https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,BR-V,siam_text,siam csv_row: 32;33;34,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,BRIO,siam_text,siam csv_row: 33;34;71;77,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,CITY,india_models;siam_text,india_models: City | siam csv_row: 32;33;34;36;40;44;49;53;56;58;63;65;78,https://www.hondacarindia.com/ https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,CIVIC,siam_text,siam csv_row: 32;38;45;50;55;60;62;66;70,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,CR-V,siam_text,siam csv_row: 32;33;34;35;41;51;59;61;64;69;73;75,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,ELEVATE,india_models,india_models: Elevate,https://www.hondacarindia.com/
+HONDA,JAZZ,siam_text,siam csv_row: 32;33;34;39;42;46;52;54;67,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,MOBILIO,siam_text,siam csv_row: 57,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,STREAM,siam_text,siam csv_row: 76,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,WR-V,siam_text,siam csv_row: 32;33;34,https://www.siam.in/siam-voluntary-recall.aspx
+HONDA,ZR-V,india_models,india_models: ZR-V,https://www.hondacarindia.com/
+HYUNDAI,ALCAZAR,india_models,india_models: Alcazar,https://www.hyundai.com/in/en
+HYUNDAI,AURA,india_models,india_models: Aura,https://www.hyundai.com/in/en
+HYUNDAI,BAYON,india_models,india_models: Bayon,https://www.hyundai.com/in/en
+HYUNDAI,CRETA,india_models;siam_text,india_models: Creta; Creta Electric; Creta N Line | siam csv_row: 80,https://www.hyundai.com/in/en https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,EON,siam_text,siam csv_row: 87,https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,EXTER,india_models,india_models: Exter,https://www.hyundai.com/in/en
+HYUNDAI,GRAND I10,siam_text,siam csv_row: 85,https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,GRAND I10 NIOS,india_models,india_models: Grand i10 Nios,https://www.hyundai.com/in/en
+HYUNDAI,I20,india_models,india_models: i20; i20 N Line,https://www.hyundai.com/in/en
+HYUNDAI,IONIQ 5,india_models;siam_text,india_models: Ioniq 5 | siam csv_row: 79,https://www.hyundai.com/in/en https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,KONA,siam_text,siam csv_row: 82;83;84,https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,SANTA FE,siam_text,siam csv_row: 86;88,https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,TUCSON,siam_text,siam csv_row: 81,https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,VENUE,india_models,india_models: Venue; Venue N Line,https://www.hyundai.com/in/en
+HYUNDAI,VERNA,india_models;siam_text,india_models: Verna | siam csv_row: 80,https://www.hyundai.com/in/en https://www.siam.in/siam-voluntary-recall.aspx
+HYUNDAI,XCENT,siam_text,siam csv_row: 85,https://www.siam.in/siam-voluntary-recall.aspx
+KIA,CARENS,india_models,india_models: Carens,https://www.kia.com/in/
+KIA,CARENS CLAVIS,india_models,india_models: Carens Clavis; Carens Clavis EV,https://www.kia.com/in/
+KIA,CARNIVAL,india_models,india_models: Carnival,https://www.kia.com/in/
+KIA,EV6,india_models;siam_text,india_models: EV6 | siam csv_row: 89,https://www.kia.com/in/ https://www.siam.in/siam-voluntary-recall.aspx
+KIA,EV9,india_models,india_models: EV9,https://www.kia.com/in/
+KIA,SELTOS,india_models,india_models: Seltos,https://www.kia.com/in/
+KIA,SONET,india_models,india_models: Sonet,https://www.kia.com/in/
+KIA,SORENTO,india_models,india_models: Sorento,https://www.kia.com/in/
+KIA,SYROS,india_models,india_models: Syros; Syros EV,https://www.kia.com/in/
+MERCEDES-BENZ,A-CLASS,india_models;siam_text,india_models: A-Class Limousine | siam csv_row: 133;185;190;192;207;231;233;234;237;238,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,AMG GT,siam_text,siam csv_row: 100;107;191;193;202;203;207;213,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,B-CLASS,siam_text,siam csv_row: 190;231;233;234;237;238,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,C-CLASS,india_models;siam_text,india_models: C-Class | siam csv_row: 90;92;93;104;105;110;111;124;128;138;144;145;148;153;164;166;174;175;176;177;178;179;180;181;183;184;194;197;198;199;201;207;210;213;222;225;226;228;230;231;232;233;234;235;236;237,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,CLA,india_models;siam_text,india_models: CLA; CLA Electric | siam csv_row: 190;223;231;233;234;237;238,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,CLE,india_models;siam_text,india_models: CLE | siam csv_row: 92;103,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,CLK,siam_text,siam csv_row: 164,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,CLS,siam_text,siam csv_row: 164;198;207;219,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,E-CLASS,india_models;siam_text,india_models: E-Class | siam csv_row: 90;101;102;106;121;122;125;139;164;171;172;174;184;191;198;207;219;220;222;223;224;228;230,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,EQB,siam_text,siam csv_row: 134,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,EQC,siam_text,siam csv_row: 189;216,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,EQE SUV,siam_text,siam csv_row: 113,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,EQS,india_models;siam_text,india_models: EQS | siam csv_row: 98;112;143;150;152,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,EQS SUV,india_models,india_models: EQS SUV,https://www.carwale.com/mercedes-benz-cars/
+MERCEDES-BENZ,G-CLASS,india_models;siam_text,india_models: G-Class; G-Class Electric | siam csv_row: 91;107;117;148;153;155;206;216;218;219;220;221,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GL,siam_text,siam csv_row: 182,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GLA,india_models;siam_text,india_models: GLA | siam csv_row: 136;137;185;190;223;231;233;234;237;238,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GLB,siam_text,siam csv_row: 135,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GLC,india_models;siam_text,india_models: GLC | siam csv_row: 90;93;97;107;114;115;123;142;148;153;197;207;211;219;229;231;232;233;236,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GLE,india_models;siam_text,india_models: GLE | siam csv_row: 90;119;126;129;130;146;148;156;158;159;165;170;183;200;205;207;209;223;227,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,GLS,india_models;siam_text,india_models: GLS | siam csv_row: 118;127;131;132;147;148;153;159;160;165;170;183;200;205;223;227,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,ML,siam_text,siam csv_row: 156;182,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,R-CLASS,siam_text,siam csv_row: 182,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,S-CLASS,india_models;siam_text,india_models: Maybach S-Class; S-Class | siam csv_row: 90;95;99;107;108;109;116;140;148;151;153;157;173;176;178;179;180;186;187;188;195;196;204;207;210;217;232,https://www.carwale.com/mercedes-benz-cars/ https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,SL,siam_text,siam csv_row: 96;141;149,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,SLK,siam_text,siam csv_row: 214,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,SPRINTER,siam_text,siam csv_row: 154;162,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,V-CLASS,siam_text,siam csv_row: 161;167;168;208;212;215,https://www.siam.in/siam-voluntary-recall.aspx
+MERCEDES-BENZ,VIANO,siam_text,siam csv_row: 94;163,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,ALMERA,siam_text,siam csv_row: 246,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,DATSUN REDI GO,siam_text,siam csv_row: 239,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,GRAVITE,india_models,india_models: Gravite,https://www.nissan.in/
+NISSAN,MAGNITE,india_models,india_models: Magnite,https://www.nissan.in/
+NISSAN,MICRA,siam_text,siam csv_row: 240;248;250,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,PATROL,siam_text,siam csv_row: 247,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,SUNNY,siam_text,siam csv_row: 241;249;251,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,TEANA,siam_text,siam csv_row: 243;245,https://www.siam.in/siam-voluntary-recall.aspx
+NISSAN,TEKTON,india_models,india_models: Tekton,https://www.nissan.in/
+NISSAN,X-TRAIL,india_models;siam_text,india_models: X-Trail | siam csv_row: 242;244,https://www.nissan.in/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,500H,siam_text,siam csv_row: 315,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,CAMRY,india_models;siam_text,india_models: Camry | siam csv_row: 305;311;330;346;348,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,COROLLA,siam_text,siam csv_row: 329;330;334;340;341;343;344,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,COROLLA ALTIS,siam_text,siam csv_row: 345;347;349,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,ETIOS,siam_text,siam csv_row: 324,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,FORTUNER,india_models;siam_text,india_models: Fortuner | siam csv_row: 330;334;339,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,GLANZA,india_models;siam_text,india_models: Glanza | siam csv_row: 318;320;322;331;332,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,HILUX,india_models,india_models: Hilux,https://www.toyotabharat.com/
+TOYOTA,INNOVA CRYSTA,india_models;siam_text,india_models: Innova Crysta | siam csv_row: 329;330;334;339,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,INNOVA HYCROSS,india_models,india_models: Innova Hycross,https://www.toyotabharat.com/
+TOYOTA,LAND CRUISER,siam_text,siam csv_row: 300;307,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LAND CRUISER 300,india_models;siam_text,india_models: Land Cruiser 300 | siam csv_row: 319,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEGENDER,india_models,india_models: Legender,https://www.toyotabharat.com/
+TOYOTA,LEXUS (LS 500H),siam_text,siam csv_row: 336,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS ES300H,siam_text,siam csv_row: 330,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LM,siam_text,siam csv_row: 310;312,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LS,siam_text,siam csv_row: 304,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LS500,siam_text,siam csv_row: 315,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LS500H,siam_text,siam csv_row: 330;334,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LS600H,siam_text,siam csv_row: 334,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LX,siam_text,siam csv_row: 301;303,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LX 500D,siam_text,siam csv_row: 319,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS LX570,siam_text,siam csv_row: 330,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS NX,siam_text,siam csv_row: 309;316,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS NX 350H,siam_text,siam csv_row: 325;326;327,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS RC-F,siam_text,siam csv_row: 299,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS RX,siam_text,siam csv_row: 308;313;317,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,LEXUS RX450H,siam_text,siam csv_row: 330;334,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,PRIUS,siam_text,siam csv_row: 335;337;338;342,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,PRIUS (ZVW30R),siam_text,siam csv_row: 333,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,RUMION,india_models,india_models: Rumion,https://www.toyotabharat.com/
+TOYOTA,URBAN CRUISER,siam_text,siam csv_row: 328,https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,URBAN CRUISER EBELLA,india_models,india_models: Urban Cruiser Ebella,https://www.toyotabharat.com/
+TOYOTA,URBAN CRUISER HYRYDER,india_models;siam_text,india_models: Urban Cruiser Hyryder | siam csv_row: 302;320;321;322;323,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,URBAN CRUISER TAISOR,india_models,india_models: Urban Cruiser Taisor,https://www.toyotabharat.com/
+TOYOTA,VELLFIRE,india_models;siam_text,india_models: Vellfire | siam csv_row: 306;314,https://www.toyotabharat.com/ https://www.siam.in/siam-voluntary-recall.aspx
+TOYOTA,YARIS,siam_text,siam csv_row: 324,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,BEETLE,siam_text,siam csv_row: 255,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,GOLF GTI,india_models,india_models: Golf GTI,https://www.volkswagen.co.in/
+VOLKSWAGEN,JETTA,siam_text,siam csv_row: 285;293;294,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,PASAT,siam_text,siam csv_row: 293;294,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,POLO,siam_text,siam csv_row: 280;293;294;295,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,TAIGUN,india_models;siam_text,india_models: Taigun | siam csv_row: 253;254,https://www.volkswagen.co.in/ https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,TAYRON,india_models,india_models: Tayron,https://www.volkswagen.co.in/
+VOLKSWAGEN,TIGUAN,india_models,india_models: Tiguan,https://www.volkswagen.co.in/
+VOLKSWAGEN,TOUAREG,siam_text,siam csv_row: 292,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,VENTO,siam_text,siam csv_row: 291;293;294,https://www.siam.in/siam-voluntary-recall.aspx
+VOLKSWAGEN,VIRTUS,india_models;siam_text,india_models: Virtus | siam csv_row: 253;254,https://www.volkswagen.co.in/ https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,EC40,india_models,india_models: EC40,https://www.autocarindia.com/cars/volvo
+VOLVO,EX30,india_models,india_models: EX30,https://www.autocarindia.com/cars/volvo
+VOLVO,EX90,india_models,india_models: EX90,https://www.autocarindia.com/cars/volvo
+VOLVO,S60,siam_text,siam csv_row: 352;353;355,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,S80,siam_text,siam csv_row: 352;353,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,S90,siam_text,siam csv_row: 354,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,V40,siam_text,siam csv_row: 352,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,V90,siam_text,siam csv_row: 354,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,XC40,siam_text,siam csv_row: 354,https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,XC60,india_models;siam_text,india_models: XC60 | siam csv_row: 352;353;354,https://www.autocarindia.com/cars/volvo https://www.siam.in/siam-voluntary-recall.aspx
+VOLVO,XC90,india_models;siam_text,india_models: XC90 | siam csv_row: 350;354,https://www.autocarindia.com/cars/volvo https://www.siam.in/siam-voluntary-recall.aspx

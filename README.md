@@ -71,7 +71,7 @@ Anthropic has no free tier, so `ANTHROPIC_API_KEY` is commented out in
 ```
 data/raw/          source data, as retrieved (see docs/SOURCES.md)
 data/interim/      intermediate artifacts        (gitignored)
-data/processed/    DuckDB + analysis outputs     (gitignored)
+data/clean/        recalls.duckdb (gitignored) + cleaned outputs
 src/               pipeline code
 tests/             pytest
 docs/SOURCES.md    provenance, shapes, and the data gotchas

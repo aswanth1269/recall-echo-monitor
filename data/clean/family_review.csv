@@ -1,0 +1,19 @@
+make,family,review_note
+HYUNDAI,GRAND I10 NIOS,'GRAND I10' is a prefix of 'GRAND I10 NIOS': confirm they are different models (longest match wins)
+HYUNDAI,XCENT,close to NHTSA 'XCIENT' (ratio 91); possible spelling variant - not merged
+KIA,CARENS CLAVIS,'CARENS' is a prefix of 'CARENS CLAVIS': confirm they are different models (longest match wins)
+TOYOTA,COROLLA ALTIS,'COROLLA' is a prefix of 'COROLLA ALTIS': confirm they are different models (longest match wins)
+TOYOTA,LAND CRUISER 300,'LAND CRUISER' is a prefix of 'LAND CRUISER 300': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LS500,'LEXUS LS' is a prefix of 'LEXUS LS500': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LS500H,'LEXUS LS' is a prefix of 'LEXUS LS500H': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LS600H,'LEXUS LS' is a prefix of 'LEXUS LS600H': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LS500H,'LEXUS LS500' is a prefix of 'LEXUS LS500H': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LX 500D,'LEXUS LX' is a prefix of 'LEXUS LX 500D': confirm they are different models (longest match wins)
+TOYOTA,LEXUS LX570,'LEXUS LX' is a prefix of 'LEXUS LX570': confirm they are different models (longest match wins)
+TOYOTA,LEXUS NX 350H,'LEXUS NX' is a prefix of 'LEXUS NX 350H': confirm they are different models (longest match wins)
+TOYOTA,LEXUS RX450H,'LEXUS RX' is a prefix of 'LEXUS RX450H': confirm they are different models (longest match wins)
+TOYOTA,PRIUS (ZVW30R),'PRIUS' is a prefix of 'PRIUS (ZVW30R)': confirm they are different models (longest match wins)
+TOYOTA,URBAN CRUISER EBELLA,'URBAN CRUISER' is a prefix of 'URBAN CRUISER EBELLA': confirm they are different models (longest match wins)
+TOYOTA,URBAN CRUISER HYRYDER,'URBAN CRUISER' is a prefix of 'URBAN CRUISER HYRYDER': confirm they are different models (longest match wins)
+TOYOTA,URBAN CRUISER TAISOR,'URBAN CRUISER' is a prefix of 'URBAN CRUISER TAISOR': confirm they are different models (longest match wins)
+VOLKSWAGEN,PASAT,close to NHTSA 'PASSAT' (ratio 91); possible spelling variant - not merged
