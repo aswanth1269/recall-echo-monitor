@@ -1,0 +1,91 @@
+platform_code,model_name,n_siam_rows,siam_csv_rows,source_text,source_url,retrieved_on
+117,CLA,2,190;223,CLA (117),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+156,GLA,2,190;223,GLA (156),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+164,GL,1,182,GL (164 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+166,GLE,2,156;223,Model 166 (ML/GLE),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+166,GLS,2,223;227,GLS (166 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+166,ML,1,156,Model 166 (ML/GLE),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,AMD GLE,1,120,Model 167(AMD GLE),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,AMG GLE,1,130,Model 167 (AMG GLE),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLE,10,90;119;129;148;159;183;200;205;207;209,GLE (167),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLE 450 4M,1,126,Model 167 (GLE 450 4M),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLE 450 4MATIC,1,146,Model 167 (GLE 450 4MATIC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLS,10,118;131;148;153;159;160;170;183;200;205,Model 167 (GLS),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLS 450 4M,1,127,Model 167 (GLS 450 4M),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,GLS 450 4MATIC,1,147,167 (GLS 450 4MATIC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+167,MAYBACH GLS,1,132,Model 167 (Maybach GLS),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+171,SLK,1,214,SLK (model 171),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+176,A-CLASS,3,190;192;231,A-Class (176),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+177,A-CLASS,2,185;207,177 (A-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+177,AMG A,1,133,Model 177(AMG A),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+190,AMG GT,2,202;203,AMG GT (Model 190),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+190,AMGGTS,1,213,AMGGTS (W190),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+203,C-CLASS,2,164;198,C-Class (203),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+204,C-CLASS,2,174;184,204(C-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,AMGC63,1,197,AMGC63 (205 platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,AMGC63S,1,213,AMGC63S (W205),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,C-CLASS,13,90;105;124;183;194;199;201;207;222;225;226;228;231,C - Class (205),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,C220 CDI,1,110,Model 205 (C220 CDI),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,C220D,1,210,Model 205 : C220D,https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+205,C250 D,1,111,Model 205 (C250 D),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+206,AMG C-CLASS,1,92,AMG C - Class (206),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+206,C 200 LIMOUSINE,1,145,Model 206(C 200 Limousine),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+206,C 220 D,1,144,Model 206 (C 220 d),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+206,C-CLASS,13,104;128;138;148;153;166;175;176;177;178;179;180;181,C – Class (206),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+207,E 400 CAB,1,230,E 400 cab (207 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+207,E-CLASS,2,174;184,207(E-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+209,CLK,1,164,CLK (209),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+211,E-CLASS,2,164;198,E-Class (211),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,AMG E 53,1,172,AMG E 53 (Model 213),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,AMG E-53,1,171,AMG E-53 (Model 213),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,AMG E-CLASS,1,122,Model 213 (AMG E-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,AMG E-CLASS 53 4M PLUS,1,101,AMG E-Class 53 4M Plus (213),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,AMGE63,1,191,AMGE63 (213),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,E-CLASS,8,90;106;121;207;219;222;224;228,E - Class (213),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+213,E63 AMG,1,220,E63 AMG(213 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+214,E-CLASS,1,139,Model 214 (E Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+219,CLS,2,164;198,CLS (219),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+222,S-CLASS,3,186;204;207,222 (S-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+222,S350D,1,210,Model 222 : S350D,https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+223,MAYBACH S-CLASS,2,95;108,Maybach S - Class (223),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+223,MERCEDES-AMG S 63 E PERFORMANCE,1,99,Mercedes-AMG S 63 E Performance (223),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+223,S-CLASS,18,90;107;109;116;140;148;151;153;157;173;176;178;179;180;187;188;195;196,S - Class (223),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+232,AMG SL,2,96;141,AMG SL (232),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+232,AMG SL 55,1,149,Model 232 (AMG SL 55),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+236,AMG CLE,1,92,AMG CLE (236),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+236,CLE,2,92;103,CLE (236),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+238,AMG E-CLASS,2,102;125,AMG E-Class (238),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+243,EQB,1,134,Model 243 (EQB),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+246,B-CLASS,2,190;231,B-Class (246),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+247,AMG GLA,1,137,Model 247(AMG GLA),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+247,GLA,2,136;185,Model 247(GLA),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+247,GLB,1,135,Model 247(GLB),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+251,R-CLASS,1,182,R-Class (251 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+253,AMG GLC,1,123,Model 253 (AMG GLC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+253,GLC,9,90;114;148;153;197;207;211;219;229,GLC (253),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+254,GLC,3,107;115;142,Model 254 (GLC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+254,GLC-CLASS,1,97,GLC - Class (254),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+257,CLS,2,207;219,CLS (257),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+290,AMG GT,3,107;191;193,Model 290 (AMG GT),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+290,AMG GT 63S 4M+ E PERFORMANCE,1,100,AMG GT 63S 4M+ E Performance (290),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+292,AMG GE,1,227,AMG GE (292 platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+292,GLE COUPE,1,158,Model 292 (GLE Coupe),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+293,EQC,2,189;216,EQC (293),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+294,EQE SUV 500 4MATIC,1,113,Model 294 (EQE SUV 500 4MATIC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+297,AMG EQS 53,1,150,Model 297 (AMG EQS 53),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+297,EOS,1,176,EOS (297),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+297,EQS,3,98;143;152,EQS (297),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+297,EQS 580 4MATIC,1,112,Model 297 (EQS 580 4MATIC),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+447,V-CLASS,4,161;167;168;208,Model 447 (V-Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+447,V220D,1,212,V220D (447 Vehicle Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+447,V220DE,1,215,V220DE (447 Vehicle Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+447,VAN,1,169,VAN (447),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+463,AMG G 63,1,155,Model 463 (AMG G 63),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+463,AMGG63,1,206,AMGG63 (463 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+463,G 350D,1,155,Model 463 (G 350d),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+463,G-CLASS,6,107;117;148;153;216;219,Model 463 (G - Class),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+463,G63 AMG,2,220;221,G63 AMG (463 Platform),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+465,G-CLASS,1,91,G- Class (465),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+639,VIANO,1,163,Model 639 (Viano),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+906,SPRINTER,1,162,Model 906 (Sprinter),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00
+907,SPRINTER,1,154,Model 907 (Sprinter),https://www.siam.in/siam-voluntary-recall.aspx,2026-10-13 00:00:00

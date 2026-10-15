@@ -92,14 +92,17 @@ def read_nhtsa(zip_path: Path = ZIP_PATH, names: list[str] | None = None) -> pd.
 
 def focus_make_table(makes_csv: Path = MAKES_CSV,
                      aliases: dict[str, list[str]] = MAKETXT_ALIASES) -> pd.DataFrame:
-    """One row per (make, NHTSA MAKETXT spelling) for the makes in india_makes.csv."""
+    """One row per (make, NHTSA MAKETXT spelling) for the makes in india_makes.csv.
+
+    nhtsa_make is the primary spelling (first alias), used as `make` downstream.
+    """
     with makes_csv.open(newline="", encoding="utf-8") as fh:
         makes = [row["make"] for row in csv.DictReader(fh)]
     unmapped = [m for m in makes if m not in aliases]
     if unmapped:
         raise ValueError(f"no NHTSA MAKETXT spelling recorded for: {unmapped}")
-    return pd.DataFrame([(m, a) for m in makes for a in aliases[m]],
-                        columns=["make", "maketxt"])
+    return pd.DataFrame([(m, a, aliases[m][0]) for m in makes for a in aliases[m]],
+                        columns=["make", "maketxt", "nhtsa_make"])
 
 
 def run_sql(con: duckdb.DuckDBPyConnection, name: str) -> None:

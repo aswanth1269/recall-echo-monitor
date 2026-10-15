@@ -12,3 +12,15 @@ Compares US recalls (NHTSA) with India recalls (SIAM) for carmakers that sell th
 # Domain notes
 - A missing India recall is a transparency signal, not proof of wrongdoing
 - Field meanings are in data/raw/RCL.txt
+
+# Commands (Windows)
+- Run modules with `.venv/Scripts/python.exe -m src.<module>`
+- Tests: `.venv/Scripts/python.exe -m pytest -q`
+- Database: data/clean/recalls.duckdb
+
+# Matching rules
+- Unit of comparison: one NHTSA campaign (CAMPNO) vs one SIAM row
+- Brands are compared through the `make` column, never manufacturer_name
+- Mercedes SIAM models use platform codes: data/reference/mercedes_platform_codes.csv
+- LLM calls go through src/llm.py only, batched, never one call per row
+- Every rate shown anywhere must show its n. Suppress rates where n < 10

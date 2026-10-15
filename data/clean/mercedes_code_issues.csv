@@ -1,0 +1,15 @@
+csv_row,segment,reason
+93,AMG C - Class (206087),number longer than 3 digits; not cut down to a platform code
+93,AMG GLC (254387),number longer than 3 digits; not cut down to a platform code
+93,GLC (254605),number longer than 3 digits; not cut down to a platform code
+94,Viano (639813),number longer than 3 digits; not cut down to a platform code
+94,Viano (639815),number longer than 3 digits; not cut down to a platform code
+107,Model 213 (AMG E,unbalanced brackets in source text
+148,213 (AMG E-Class,unbalanced brackets in source text
+165,Model 167,3-digit number with no model name stated beside it
+183,"213 (E-CLASS0, 223 (S-CLASS, 253 (GLC)",unbalanced brackets in source text
+186,253 GLC,3-digit number with no model name stated beside it
+212,VAN V220DL,3-digit number with no model name stated beside it
+215,Van V220DL,3-digit number with no model name stated beside it
+217,S560XL (Maybach S 560),3-digit number with no model name stated beside it
+223,E-Class (213 Platfor,unbalanced brackets in source text

@@ -110,6 +110,8 @@ def test_focus_make_table_covers_every_picked_make():
         makes = {r["make"] for r in csv.DictReader(fh)}
     assert set(table["make"]) == makes
     assert (table["maketxt"] == table["maketxt"].str.upper().str.strip()).all()
+    mb = table[table["make"] == "Mercedes-Benz"]
+    assert set(mb["nhtsa_make"]) == {"MERCEDES-BENZ"}
 
 
 def test_focus_make_table_refuses_unmapped_make(tmp_path: Path):
@@ -141,7 +143,8 @@ def test_build_filters_makes_dates_and_lookalikes(synthetic_db):
     # the 2014 Honda, Ford and Lexus are not.
     assert kept == {"1", "2", "3", "4"}
     assert con.execute(
-        "SELECT make FROM nhtsa_focus WHERE RECORD_ID = '4'").fetchone() == ("Mercedes-Benz",)
+        "SELECT make, make_label FROM nhtsa_focus WHERE RECORD_ID = '4'"
+    ).fetchone() == ("MERCEDES-BENZ", "Mercedes-Benz")
 
 
 def test_build_keeps_unknown_year_null(synthetic_db):
@@ -206,8 +209,11 @@ def real_db(tmp_path_factory) -> duckdb.DuckDBPyConnection:
 def test_real_no_other_makes_remain(real_db):
     with (ROOT / "data/raw/india_makes.csv").open(encoding="utf-8") as fh:
         picked = {r["make"] for r in csv.DictReader(fh)}
+    labels = {r[0] for r in real_db.execute(
+        "SELECT DISTINCT make_label FROM nhtsa_focus").fetchall()}
+    assert labels == picked
     makes = {r[0] for r in real_db.execute("SELECT DISTINCT make FROM nhtsa_focus").fetchall()}
-    assert makes == picked
+    assert makes == {spellings[0] for spellings in ln.MAKETXT_ALIASES.values()}
     allowed = {a for spellings in ln.MAKETXT_ALIASES.values() for a in spellings}
     spellings = {r[0] for r in real_db.execute(
         "SELECT DISTINCT upper(trim(MAKETXT)) FROM nhtsa_focus").fetchall()}
