@@ -210,6 +210,28 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def summary_frame(result: dict[str, object]) -> pd.DataFrame:
+    """One row per matcher: counts, and each rate with its own n.
+
+    A rate is left empty where its n < MIN_N (CLAUDE.md), so a reader of the
+    CSV cannot show a suppressed rate by accident. `n` is the number of pairs.
+    """
+    rows = []
+    for name in ("llm", "baseline"):
+        c, m = result[name]["confusion"], result[name]["metrics"]
+        row = {"matcher": name, "n": result["n"], "positives": c["tp"] + c["fn"], **c}
+        for k in ("precision", "recall", "f1"):
+            value, _num, den = m[k]
+            row[k] = round(value, 4) if den >= MIN_N else None
+            row[f"{k}_n"] = den
+        row["threshold"] = result["threshold"] if name == "baseline" else None
+        row["note"] = ("labels by Claude, not human-verified; tuned on these pairs"
+                       if name == "llm" else
+                       "threshold chosen on these same pairs (flatters the baseline)")
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
           out_md: Path = REPORT_MD) -> dict[str, object]:
     """Compute both evaluations and write the markdown report. Never writes gt_path."""
@@ -229,6 +251,8 @@ def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
     labelled_by = "; ".join(sorted(set(gt.get("labelled_by", pd.Series(["unknown"])))))
     out_md.parent.mkdir(parents=True, exist_ok=True)
     out_md.write_text(render_markdown(result, texts, labelled_by, gt_path), encoding="utf-8")
+    summary_frame(result).to_csv(out_md.parent / "eval_summary.csv", index=False,
+                                 encoding="utf-8")
     if file_digest(gt_path) != before:          # belt and braces: labels must be untouched
         raise RuntimeError("ground-truth file changed during evaluation")
     return result

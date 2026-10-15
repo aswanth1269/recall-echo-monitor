@@ -26,6 +26,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from src.csv_safe import excel_safe
 from src.load_nhtsa import DB_PATH
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -114,8 +115,9 @@ def build(db_path: Path = DB_PATH, sheet_csv: Path = SHEET_CSV, key_csv: Path = 
         con.close()
     sheet, key = to_sheet(sample_pairs(pairs, seed=seed))
     sheet_csv.parent.mkdir(parents=True, exist_ok=True)
-    # utf-8-sig so Excel shows curly quotes and dashes in the defect text correctly
-    sheet.to_csv(sheet_csv, index=False, encoding="utf-8-sig")
+    # utf-8-sig so Excel shows curly quotes and dashes in the defect text correctly;
+    # excel_safe so no recall text can run as a formula when the sheet is opened
+    excel_safe(sheet).to_csv(sheet_csv, index=False, encoding="utf-8-sig")
     key.to_csv(key_csv, index=False, encoding="utf-8")
     return key
 

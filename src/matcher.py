@@ -24,6 +24,7 @@ Run:  .venv/Scripts/python.exe -m src.matcher [--all]
 from __future__ import annotations
 
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Callable
@@ -48,6 +49,26 @@ log = logging.getLogger(__name__)
 SYSTEM = ("You compare vehicle safety recalls from the US (NHTSA) and India (SIAM). "
           "You answer only with JSON, and every evidence phrase you give is copied "
           "exactly, character for character, from the text it comes from.")
+
+# Prompt-injection screen. Recall text is untrusted data that goes into the
+# prompt; text addressed to a model rather than describing a defect is not
+# sent at all. Patterns are narrow on purpose: ordinary recall wording must
+# never match (checked against every candidate pair).
+_INSTRUCTION = re.compile(
+    r"\b(ignore|disregard|forget|override)\b[^.]{0,40}\b(previous|prior|above|earlier|all)\b"
+    r"[^.]{0,20}\b(instructions?|prompts?|rules)\b"
+    r"|\bsystem prompt\b"
+    r"|\byou are (now )?(an? |the )?(ai|assistant|language model|llm|chatbot)\b"
+    r"|\b(us_evidence|india_evidence|pair_id)\b"
+    r"|\b(label|mark|classify) (this|these|every|each|all) pairs?\b",
+    re.IGNORECASE)
+
+
+def instruction_like(text: object) -> str | None:
+    """The phrase that makes text look addressed to a model, or None."""
+    m = _INSTRUCTION.search(_clean(text))
+    return m.group(0) if m else None
+
 
 # Typographic characters an LLM tends to retype as plain ones; same text either way.
 _PLAIN = str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"',
@@ -193,14 +214,25 @@ def judge(pairs: pd.DataFrame, ask: Callable[..., object] = complete_json,
           batch_size: int = BATCH) -> pd.DataFrame:
     """Ask the LLM in batches, then check every answer in Python."""
     rows = []
-    records = pairs.to_dict("records")
-    sendable = [p for p in records if p["us_has_defect"] and p["india_has_defect"]]
-    for p in records:
-        if p not in sendable:
+    sendable = []
+    for p in pairs.to_dict("records"):
+        reason = None
+        if not (p["us_has_defect"] and p["india_has_defect"]):
             side = "US" if not p["us_has_defect"] else "INDIA"
+            reason = f"no {side} defect text; not sent to the LLM"
+        else:
+            for side, key in (("US", "us_text"), ("INDIA", "india_text")):
+                phrase = instruction_like(p[key])
+                if phrase:
+                    reason = (f"{side} text looks addressed to a model ({phrase!r}); "
+                              "not sent to the LLM (possible prompt injection)")
+                    break
+        if reason:
             row = check_result(None, p)
-            row["review_reason"] = f"no {side} defect text; not sent to the LLM"
+            row["review_reason"] = reason
             rows.append(row)
+        else:
+            sendable.append(p)
     for batch in batched(sendable, batch_size):
         answer = ask(build_prompt(batch), system=SYSTEM, temperature=0.0, max_tokens=4096)
         by_id = _results_by_id(answer)

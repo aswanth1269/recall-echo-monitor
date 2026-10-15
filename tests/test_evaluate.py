@@ -162,6 +162,26 @@ def test_revision_lines_empty_without_notes():
     assert ev._revision_lines(pd.DataFrame({"pair_id": ["a"], "label": ["same"]})) == []
 
 
+def test_build_writes_eval_summary_with_suppressed_rates(tmp_path, gt_file):
+    out_md = tmp_path / "reports" / "eval.md"
+    ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out_md)
+    s = pd.read_csv(tmp_path / "reports" / "eval_summary.csv").set_index("matcher")
+    assert list(s.index) == ["llm", "baseline"]
+    assert (s.loc["llm", "tp"], s.loc["llm", "fn"], s.loc["llm", "positives"]) == (1, 1, 2)
+    assert s.loc["llm", "recall_n"] == 2 and pd.isna(s.loc["llm", "recall"])   # n < 10
+    assert {"n", "precision", "recall", "f1"} <= set(s.columns)
+
+
+def test_summary_frame_shows_rates_at_n_10():
+    c = {"tp": 5, "fp": 0, "fn": 0, "tn": 25}
+    result = {"n": 30, "threshold": 0.2, "llm": {"confusion": c, "metrics": ev.metrics(c)},
+              "baseline": {"confusion": c, "metrics": ev.metrics(c)}}
+    s = ev.summary_frame(result).set_index("matcher")
+    assert s.loc["llm", "f1"] == 1.0 and s.loc["llm", "f1_n"] == 10    # 2*5+0+0 = 10
+    assert pd.isna(s.loc["llm", "precision"])                          # n = 5
+    assert s.loc["baseline", "threshold"] == 0.2
+
+
 def test_build_refuses_to_write_over_ground_truth(tmp_path, gt_file):
     with pytest.raises(ValueError, match="refusing"):
         ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=gt_file)

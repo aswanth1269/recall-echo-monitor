@@ -46,8 +46,8 @@ F1 is shown as 2·TP / (2·TP + FP + FN).
 
 - **Ground truth:** `same` (high confidence) - Airbag inflator ruptures from excessive internal pressure; Civic on both sides (US 2010-2011 Civic in scope)
 - **LLM:** `same` (confidence 0.90)
-  - US evidence: "air bag inflators assembled as part of the frontal air bag modules, and used as original equipment"
-  - India evidence: "At the time of Driver/Passenger side airbag deployment, the inflator body may get ruptured"
+  - US evidence: "may explode due to propellant degradation occurring after long-term exposure"
+  - India evidence: "the inflator body may get ruptured due to excessive internal pressure"
 - **Baseline:** score 0.0249 -> `different`
 
 **US text**

@@ -1,0 +1,24 @@
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#0d0d0d"
+secondaryBackgroundColor = "#1a1a19"
+textColor = "#f0efec"
+font = "sans serif"
+
+[server]
+headless = true
+# Only this computer can open the dashboard. Without this Streamlit listens on
+# every network interface, so anyone on the same Wi-Fi could reach it if the
+# firewall allowed Python in.
+address = "localhost"
+# Left explicit so it cannot be switched off by accident.
+enableXsrfProtection = true
+
+[client]
+# Show only the exception type in the browser - no tracebacks or file paths.
+# Full details still go to the terminal running the server.
+showErrorDetails = "type"
+
+[browser]
+gatherUsageStats = false

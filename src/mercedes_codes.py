@@ -22,6 +22,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
+from src.csv_safe import excel_safe
 from src.load_nhtsa import DB_PATH
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,7 +140,9 @@ def build(db_path: Path = DB_PATH, out_csv: Path = REF_CSV,
     finally:
         con.close()
     pairs, issues = extract_pairs(rows)
-    for path, df in ((out_csv, pairs), (issues_csv, issues)):
+    # The reference table is read back by model_family, so it is written as-is;
+    # the issues list is only for people, so formula-like cells are neutralised.
+    for path, df in ((out_csv, pairs), (issues_csv, excel_safe(issues))):
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False, encoding="utf-8")
     return len(pairs), len(issues)

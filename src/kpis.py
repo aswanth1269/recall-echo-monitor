@@ -6,6 +6,9 @@ KPIs (one SQL file each, a one-line comment at the top of each says what it is):
   echo_by_component  echo rate by component group (n >= 10 only)
   ota                OTA share by make / report year; echo rate OTA vs non-OTA
 
+Row-level export for the dashboard (data/clean/echo_explorer.csv):
+  echo_explorer      one row per campaign x make with its best pair or no_candidate
+
 A campaign (campaign x make) "echoes" when it has at least one pair labelled
 `same` in matches. Every output row carries n; rates are NULL where n < 10.
 
@@ -30,6 +33,8 @@ SQL_DIR = ROOT / "sql"
 OUT_DIR = ROOT / "data/clean"
 MAKES_CSV = ROOT / "data/raw/india_makes.csv"
 KPIS = ("echo_rate", "echo_lag", "echo_by_component", "ota")
+# Row-level exports for the dashboard (no n column; not KPIs): file = <name>.csv
+EXPORTS = ("echo_explorer",)
 
 
 def load_make_segments(makes_csv: Path = MAKES_CSV) -> pd.DataFrame:
@@ -69,17 +74,21 @@ def run_kpi(con: duckdb.DuckDBPyConnection, name: str) -> pd.DataFrame:
 
 def build(db_path: Path = DB_PATH, out_dir: Path = OUT_DIR,
           makes_csv: Path = MAKES_CSV) -> dict[str, pd.DataFrame]:
-    """Run every KPI, write data/clean/kpi_<name>.csv, return the tables."""
+    """Run every KPI and export, write them to data/clean, return the tables.
+
+    KPIs go to kpi_<name>.csv; row-level exports (EXPORTS) to <name>.csv.
+    """
     con = duckdb.connect(str(db_path), read_only=True)
     try:
         check_inputs(con)
         con.register("make_segments", load_make_segments(makes_csv))
-        results = {name: run_kpi(con, name) for name in KPIS}
+        results = {name: run_kpi(con, name) for name in KPIS + EXPORTS}
     finally:
         con.close()
     out_dir.mkdir(parents=True, exist_ok=True)
     for name, df in results.items():
-        df.to_csv(out_dir / f"kpi_{name}.csv", index=False, encoding="utf-8")
+        stem = name if name in EXPORTS else f"kpi_{name}"
+        df.to_csv(out_dir / f"{stem}.csv", index=False, encoding="utf-8")
     return results
 
 
@@ -88,6 +97,10 @@ def main() -> None:
     pd.set_option("display.width", 200)
     pd.set_option("display.max_rows", 200)
     for name, df in results.items():
+        if name in EXPORTS:
+            print(f"\n=== {name}.csv ({len(df)} rows; row-level, see the file) ===")
+            print(df.label.value_counts().to_string() if "label" in df else "")
+            continue
         print(f"\n=== kpi_{name}.csv ({len(df)} rows) ===")
         print(df.to_string(index=False))
 

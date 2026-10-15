@@ -53,7 +53,16 @@ def _fake(tmp_path: Path) -> tuple[Path, Path]:
         con.execute(f"CREATE TABLE {name} AS SELECT * FROM df")
         con.unregister("df")
     con.execute("ALTER TABLE matches ADD COLUMN scope VARCHAR DEFAULT 'all'")
-    con.execute("CREATE TABLE candidate_pairs AS SELECT CAMPNO, csv_row FROM matches")
+    con.execute("ALTER TABLE matches ADD COLUMN confidence DOUBLE DEFAULT 0.9")
+    con.execute("ALTER TABLE matches ADD COLUMN us_evidence VARCHAR DEFAULT 'us quote'")
+    con.execute("ALTER TABLE matches ADD COLUMN india_evidence VARCHAR DEFAULT 'india quote'")
+    con.execute("ALTER TABLE india_relevant_campaigns ADD COLUMN DESC_DEFECT VARCHAR DEFAULT 'us text'")
+    con.execute("ALTER TABLE siam_recalls ADD COLUMN model VARCHAR DEFAULT 'M'")
+    con.execute("ALTER TABLE siam_recalls ADD COLUMN defect_description VARCHAR DEFAULT 'india text'")
+    # rank: A01's 2019-12-22 row (csv_row 3) is rank 2, the 2020-03-01 row rank 1
+    con.execute("""CREATE TABLE candidate_pairs AS
+        SELECT CAMPNO, make, csv_row, CASE WHEN csv_row = 3 THEN 2 ELSE 1 END AS rank
+        FROM matches""")
     con.close()
 
     makes = tmp_path / "india_makes.csv"
@@ -139,6 +148,33 @@ def test_echo_rate_by_ota_group(results):
     assert unknown.n == 2
 
 
+# ---------- 5. echo_explorer (row-level export) ----------
+
+def test_echo_explorer_one_row_per_campaign_with_best_pair(results, tmp_path):
+    ex = results["echo_explorer"]
+    assert len(ex) == 17 and not ex[["CAMPNO", "make"]].duplicated().any()
+    by = ex.set_index("CAMPNO")
+    # A01 has two `same` pairs: the earliest India date wins even though it ranks 2nd
+    assert by.loc["A01", "label"] == "same"
+    assert str(by.loc["A01", "india_recall_date"])[:10] == "2019-12-22"
+    assert by.loc["A01", "lag_days"] == -10                     # same as echo_lag uses
+    assert by.loc["A03", "label"] == "needs_review" and pd.isna(by.loc["A03", "lag_days"])
+    assert by.loc["A04", "label"] == "different"
+    assert by.loc["A05", "label"] == "no_candidate"
+    assert pd.isna(by.loc["A05", "india_recall_date"])          # never filled in
+    assert by.loc["A00", "segment"] == "luxury" and by.loc["B0", "segment"] == "mass_market"
+    out = pd.read_csv(tmp_path / "out" / "echo_explorer.csv")   # no kpi_ prefix
+    assert list(out.columns) == ["CAMPNO", "make", "segment", "report_date", "component",
+                                 "us_defect", "label", "india_recall_date", "india_model",
+                                 "india_defect", "lag_days", "confidence", "us_evidence",
+                                 "india_evidence"]
+
+
+def test_explorer_echoes_agree_with_echo_rate(results):
+    ex, rate = results["echo_explorer"], results["echo_rate"]
+    assert int((ex.label == "same").sum()) == int(_row(rate, level="all", grp="ALL").echoing)
+
+
 # ---------- exports, checks, helpers ----------
 
 def test_every_kpi_is_exported_with_n(results, tmp_path):
@@ -165,7 +201,7 @@ def test_check_inputs_rejects_partial_matcher_run(tmp_path):
 def test_check_inputs_rejects_unjudged_pairs(tmp_path):
     db, makes = _fake(tmp_path)
     con = duckdb.connect(str(db))
-    con.execute("INSERT INTO candidate_pairs VALUES ('B4', 99)")
+    con.execute("INSERT INTO candidate_pairs VALUES ('B4', 'B', 99, 1)")
     con.close()
     with pytest.raises(ValueError, match="no verdict"):
         kpis.build(db_path=db, out_dir=tmp_path / "o", makes_csv=makes)
@@ -195,7 +231,9 @@ def test_run_kpi_executes_named_file(tmp_path):
 
 
 def test_main_prints_every_table(monkeypatch, capsys):
-    monkeypatch.setattr(kpis, "build", lambda: {n: pd.DataFrame({"n": [1]}) for n in kpis.KPIS})
+    tables = {n: pd.DataFrame({"n": [1]}) for n in kpis.KPIS}
+    tables["echo_explorer"] = pd.DataFrame({"label": ["same", "no_candidate"]})
+    monkeypatch.setattr(kpis, "build", lambda: tables)
     kpis.main()
     out = capsys.readouterr().out
-    assert all(f"kpi_{n}.csv" in out for n in kpis.KPIS)
+    assert all(f"kpi_{n}.csv" in out for n in kpis.KPIS) and "echo_explorer.csv" in out

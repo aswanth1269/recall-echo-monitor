@@ -41,6 +41,7 @@ import duckdb
 import pandas as pd
 from rapidfuzz import fuzz
 
+from src.csv_safe import excel_safe
 from src.llm import batched, complete_json
 from src.load_nhtsa import DB_PATH, MAKETXT_ALIASES
 from src.load_siam import clean_text
@@ -503,7 +504,9 @@ def build(db_path: Path = DB_PATH, vocab_csv: Path = VOCAB_CSV,
         nhtsa, siam_fam = apply_overrides(nhtsa, siam_fam, load_overrides(overrides_csv), vocab)
 
         review_csv.parent.mkdir(parents=True, exist_ok=True)
-        review_frame(llm_rows, zero).to_csv(review_csv, index=False, encoding="utf-8")
+        # for people only: neutralise cells a spreadsheet would run as a formula
+        excel_safe(review_frame(llm_rows, zero)).to_csv(review_csv, index=False,
+                                                        encoding="utf-8")
 
         for name, df in (("nhtsa_model_family", nhtsa), ("siam_row_family", siam_fam)):
             con.register("df", df)
@@ -540,7 +543,8 @@ def write_vocabulary(db_path: Path = DB_PATH, india_csv: Path = INDIA_MODELS_CSV
         con.close()
     vocab, _issues = build_vocabulary(india, siam, codes)
     review = vocabulary_review(vocab, models)
-    for path, df in ((vocab_csv, vocab), (review_csv, review)):
+    # the vocabulary is read back by build(), so only the review list is neutralised
+    for path, df in ((vocab_csv, vocab), (review_csv, excel_safe(review))):
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False, encoding="utf-8")
     if not aliases_csv.exists():

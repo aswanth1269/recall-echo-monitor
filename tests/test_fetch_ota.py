@@ -58,29 +58,29 @@ def test_fetch_caches_empty_answers_too(tmp_path: Path):
 
 def test_fetch_rejects_and_does_not_cache_odd_responses(tmp_path: Path):
     with pytest.raises(ValueError, match="unexpected API response"):
-        fo.fetch_campaign("A", tmp_path, lambda u: {"error": "boom"})
-    assert not (tmp_path / "A.json").exists()
+        fo.fetch_campaign("20V000001", tmp_path, lambda u: {"error": "boom"})
+    assert not (tmp_path / "20V000001.json").exists()
 
 
 # ---------- fetch_all: pacing, failures ----------
 
 def test_fetch_all_pauses_between_real_requests_only(tmp_path: Path):
-    fo.fetch_campaign("CACHED", tmp_path, lambda u: _payload(False))   # pre-cached
+    fo.fetch_campaign("20V000004", tmp_path, lambda u: _payload(False))   # pre-cached
     sleeps = []
-    rows, requests = fo.fetch_all(["A", "CACHED", "B", "C"], tmp_path,
+    rows, requests = fo.fetch_all(["20V000001", "20V000004", "20V000002", "20V000003"], tmp_path,
                                   get=lambda u: _payload(True), sleep=sleeps.append)
     assert requests == 3 and sleeps == [0.3, 0.3]        # before B and C, not before A or CACHED
-    assert rows.set_index("CAMPNO").ota.to_dict() == {"A": True, "CACHED": False,
-                                                      "B": True, "C": True}
+    assert rows.set_index("CAMPNO").ota.to_dict() == {"20V000001": True, "20V000004": False,
+                                                      "20V000002": True, "20V000003": True}
 
 
 def test_failed_request_is_null_and_retried_next_run(tmp_path: Path):
     def boom(url):
         raise urllib.error.URLError("network down")
 
-    rows, _ = fo.fetch_all(["A"], tmp_path, get=boom, sleep=lambda s: None)
+    rows, _ = fo.fetch_all(["20V000001"], tmp_path, get=boom, sleep=lambda s: None)
     assert rows.ota.isna().all() and rows.null_reason.iloc[0].startswith("request failed")
-    assert not (tmp_path / "A.json").exists()            # nothing cached, so a rerun retries
+    assert not (tmp_path / "20V000001.json").exists()            # nothing cached, so a rerun retries
 
 
 # ---------- campaign_numbers / build / main ----------

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -54,7 +55,15 @@ def campaign_numbers(con: duckdb.DuckDBPyConnection) -> list[str]:
         "SELECT DISTINCT CAMPNO FROM india_relevant_campaigns ORDER BY CAMPNO").fetchall()]
 
 
+# NHTSA campaign numbers: 2-digit year, a letter, then 6 digits or capital
+# letters (e.g. 24V200000, and a handful like 21V00M000). Checked before the
+# number becomes a filename, so no value can point outside the cache folder.
+_CAMPNO = re.compile(r"[0-9]{2}[A-Z][0-9A-Z]{6}")
+
+
 def cache_path(campno: str, cache_dir: Path = CACHE_DIR) -> Path:
+    if not isinstance(campno, str) or not _CAMPNO.fullmatch(campno):
+        raise ValueError(f"not a valid NHTSA campaign number: {campno!r}")
     return cache_dir / f"{campno}.json"
 
 
@@ -101,7 +110,11 @@ def fetch_all(campnos: list[str], cache_dir: Path = CACHE_DIR,
     """(rows of CAMPNO, ota, null_reason; number of real requests made)."""
     rows, requests = [], 0
     for campno in campnos:
-        cached = cache_path(campno, cache_dir).exists()
+        try:
+            cached = cache_path(campno, cache_dir).exists()
+        except ValueError as exc:                # never used as a filename, never fetched
+            rows.append((campno, None, f"invalid campaign number: {exc}"[:200]))
+            continue
         if not cached and requests:
             sleep(pause)                         # 0.3 s between real requests only
         try:

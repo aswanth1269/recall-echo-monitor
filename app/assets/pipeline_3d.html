@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline</title>
+<style>
+  :root {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --line: rgba(255, 255, 255, 0.10);
+    --us: #3987e5;
+    --india: #d95926;
+    --match: #199e70;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: transparent; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  #stage {
+    position: relative; height: 100%; min-height: 420px;
+    border-radius: 16px; overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 0%, #1d2330 0%, #121316 55%, #0d0d0d 100%);
+    border: 1px solid var(--line);
+  }
+  #stage::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 84px; z-index: 1;
+    background: linear-gradient(180deg, rgba(14,15,18,.92) 0%, rgba(14,15,18,.6) 60%, rgba(14,15,18,0) 100%);
+    pointer-events: none;
+  }
+  #title, #legend, #card, #labels { z-index: 2; }
+  #labels { position: absolute; inset: 0; pointer-events: none; }
+  canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .label {
+    position: absolute; transform: translate(-50%, -100%);
+    padding: 6px 10px; border-radius: 10px;
+    background: rgba(26, 26, 25, 0.78); border: 1px solid var(--line);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    white-space: nowrap; pointer-events: auto; cursor: pointer;
+    transition: opacity .25s, border-color .25s, transform .25s;
+    font-size: 12px; line-height: 1.3; user-select: none;
+  }
+  .label b { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .label span { color: var(--ink-2); font-size: 11.5px; }
+  .label.dim { opacity: .45; }
+  .label.active { border-color: rgba(255,255,255,.35); transform: translate(-50%, -112%); opacity: 1; }
+  .label .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  #title {
+    position: absolute; left: 18px; top: 14px; pointer-events: none;
+  }
+  #title h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .2px; }
+  #title p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+  #legend { position: absolute; right: 16px; top: 14px; display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); pointer-events: none; }
+  #legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+  #card {
+    position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+    width: min(680px, calc(100% - 32px));
+    background: rgba(26, 26, 25, 0.86); border: 1px solid var(--line);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 14px; padding: 14px 16px 12px;
+  }
+  #card .row { display: flex; align-items: flex-start; gap: 14px; }
+  #step-no {
+    flex: none; width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center; font-weight: 600; font-size: 13px;
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  #card h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  #card p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+  #card .stat { margin-top: 6px; font-size: 12.5px; color: var(--ink); }
+  #card .stat em { font-style: normal; color: var(--muted); }
+  #controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  #controls button {
+    font: inherit; font-size: 12px; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  #controls button:hover { border-color: rgba(255,255,255,.3); }
+  #controls button:focus-visible { outline: 2px solid var(--us); outline-offset: 2px; }
+  #dots { display: flex; gap: 6px; margin-left: auto; }
+  #dots button { width: 9px; height: 9px; padding: 0; border-radius: 50%; background: #383835; border: none; }
+  #dots button.on { background: var(--ink); }
+  #progress { height: 2px; background: #2c2c2a; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  #progress div { height: 100%; width: 0; background: var(--ink-2); }
+  #fallback { display: none; padding: 20px 22px; }
+  #fallback ol { margin: 8px 0 0; padding-left: 20px; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; }
+  #fallback b { color: var(--ink); }
+  @media (max-width: 560px) {
+    #legend { display: none; }
+    .label span { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="title">
+    <h2>How the pipeline works</h2>
+    <p>Drag to rotate · click a stage to jump to it</p>
+  </div>
+  <div id="legend">
+    <span><i style="background:var(--us)"></i>US recalls</span>
+    <span><i style="background:var(--india)"></i>India recalls</span>
+    <span><i style="background:var(--match)"></i>Matched pairs</span>
+  </div>
+  <div id="labels"></div>
+  <div id="card" aria-live="polite">
+    <div class="row">
+      <div id="step-no">1</div>
+      <div>
+        <h3 id="step-title"></h3>
+        <p id="step-text"></p>
+        <div class="stat" id="step-stat"></div>
+      </div>
+    </div>
+    <div id="controls">
+      <button id="prev" aria-label="Previous step">&#8592; Prev</button>
+      <button id="play" aria-label="Pause tour">Pause</button>
+      <button id="next" aria-label="Next step">Next &#8594;</button>
+      <div id="dots"></div>
+    </div>
+    <div id="progress"><div></div></div>
+  </div>
+  <div id="fallback"></div>
+</div>
+
+<script>/*__THREE__*/</script>
+<script>
+(function () {
+  "use strict";
+
+  // Live counts injected by app/pipeline_3d.py. A null value means the
+  // table does not exist yet; it is shown as a dash, never estimated.
+  var DATA = /*__DATA__*/null;
+  DATA = DATA || {};
+
+  function fmt(v) {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "number" && v > 0 && v < 1) return (v * 100).toFixed(1) + "%";
+    return Number(v).toLocaleString("en-US");
+  }
+
+  var COLORS = { us: 0x3987e5, india: 0xd95926, match: 0x199e70, neutral: 0xc3c2b7 };
+
+  // ---- stages -------------------------------------------------------------
+  var NODES = [
+    { id: "nhtsa", name: "US recalls (NHTSA)", pos: [-10.5, 0, -2.6], color: COLORS.us,
+      count: function () { return fmt(DATA.us_campaigns) + " campaigns"; } },
+    { id: "siam", name: "India recalls (SIAM)", pos: [-10.5, 0, 2.6], color: COLORS.india,
+      count: function () { return fmt(DATA.siam_recalls) + " recalls"; } },
+    { id: "db", name: "DuckDB warehouse", pos: [-5.6, 0, 0], color: COLORS.neutral,
+      count: function () { return "one database"; } },
+    { id: "family", name: "Model families", pos: [-1.6, 0, -1.4], color: COLORS.neutral,
+      count: function () { return fmt(DATA.families) + " families"; } },
+    { id: "cand", name: "Candidate pairs", pos: [2.6, 0, 1.0], color: COLORS.neutral,
+      count: function () { return fmt(DATA.pairs) + " pairs"; } },
+    { id: "llm", name: "LLM matcher + evidence check", pos: [6.8, 0, -0.8], color: COLORS.match,
+      count: function () { return fmt(DATA.matched) + " echoes found"; } },
+    { id: "kpi", name: "KPIs & dashboard", pos: [10.8, 0, 0.6], color: COLORS.match,
+      count: function () { return "echo rate " + fmt(DATA.echo_rate); } }
+  ];
+  var byId = {};
+  NODES.forEach(function (n, i) { n.index = i; byId[n.id] = n; });
+
+  var STEPS = [
+    { focus: ["nhtsa", "siam"], title: "Two public recall sources",
+      text: "US safety recalls come from NHTSA, the US regulator. Indian recalls come from SIAM's voluntary recall list. Both are public.",
+      stat: function () { return fmt(DATA.us_campaigns) + " US campaigns <em>and</em> " + fmt(DATA.siam_recalls) + " India recalls for the chosen carmakers"; } },
+    { focus: ["db"], title: "One database",
+      text: "Both sources load into DuckDB. Dates are parsed without guessing, and anything unreadable is logged instead of filled in.",
+      stat: function () { return "Raw files are never edited, so every number can be rebuilt"; } },
+    { focus: ["family"], title: "One shared list of model names",
+      text: "US trims like GLE450 or 330i and Indian names like “205 (C-Class)” are mapped to one family list. Rules first, then an LLM for the leftovers; its answers are flagged for a person to review.",
+      stat: function () { return fmt(DATA.families) + " model families <em>across</em> " + fmt(DATA.relevant) + " US campaigns on India-sold models"; } },
+    { focus: ["cand"], title: "Narrow to likely pairs",
+      text: "A pair needs the same carmaker, a shared model family, and an India recall from 180 days before to 730 days after the US one. Text similarity keeps the top 3.",
+      stat: function () { return fmt(DATA.pairs) + " candidate pairs to check"; } },
+    { focus: ["llm"], title: "The LLM judges, code verifies",
+      text: "An LLM labels each pair same or different and quotes its evidence from both texts. Python checks every quote really exists, or the pair goes to review.",
+      stat: function () { return fmt(DATA.matched) + " US campaigns where the LLM found an India echo, quotes checked by code" + (DATA.f1 != null ? " <em>· F1 on 30 tuned test pairs</em> " + Number(DATA.f1).toFixed(2) : ""); } },
+    { focus: ["kpi"], title: "Measure the echo",
+      text: "Echo rate, the lag in days, the gaps by component, and the over-the-air share. Every rate shows its n. A missing India recall is a transparency signal, not proof of wrongdoing.",
+      stat: function () { return "Echo rate " + fmt(DATA.echo_rate) + " <em>· median lag</em> " + (DATA.median_lag_days != null ? fmt(DATA.median_lag_days) + " days" : "—"); } }
+  ];
+
+  var EDGES = [
+    ["nhtsa", "db", "us"], ["siam", "db", "india"],
+    ["db", "family", "mix"], ["family", "cand", "mix"],
+    ["cand", "llm", "mix"], ["llm", "kpi", "match"]
+  ];
+
+  var stageEl = document.getElementById("stage");
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- WebGL check, with a plain-text fallback -----------------------------
+  function showFallback(reason) {
+    var fb = document.getElementById("fallback");
+    ["card", "legend", "labels"].forEach(function (id) { document.getElementById(id).style.display = "none"; });
+    var html = "<b>How the pipeline works</b>" + (reason ? " <span style='color:var(--muted)'>(" + reason + ")</span>" : "") + "<ol>";
+    STEPS.forEach(function (s) { html += "<li><b>" + s.title + ".</b> " + s.text + "</li>"; });
+    fb.innerHTML = html + "</ol>";
+    fb.style.display = "block";
+    document.getElementById("title").style.display = "none";
+  }
+  if (typeof THREE === "undefined") { showFallback("3D library not loaded"); return; }
+
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  } catch (e) { showFallback("WebGL is not available in this browser"); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stageEl.insertBefore(renderer.domElement, stageEl.firstChild);
+
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x101217, 16, 42);
+  var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+
+  scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x15161a, 0.7));
+  var key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(6, 14, 10);
+  scene.add(key);
+
+  var grid = new THREE.GridHelper(48, 48, 0x34343a, 0x232327);
+  grid.material.transparent = true; grid.material.opacity = 0.55;
+  grid.position.y = -1.05;
+  scene.add(grid);
+
+  // Soft round glow texture for sprites and particles.
+  function glowTexture() {
+    var c = document.createElement("canvas"); c.width = c.height = 128;
+    var g = c.getContext("2d");
+    var grd = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, "rgba(255,255,255,1)");
+    grd.addColorStop(0.25, "rgba(255,255,255,0.55)");
+    grd.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+    var t = new THREE.CanvasTexture(c);
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  var GLOW = glowTexture();
+
+  function mat(color, emissive) {
+    return new THREE.MeshStandardMaterial({
+      color: color, emissive: color, emissiveIntensity: emissive == null ? 0.18 : emissive,
+      roughness: 0.45, metalness: 0.2, transparent: true, opacity: 1
+    });
+  }
+
+  // ---- node meshes ----------------------------------------------------------
+  function buildIcon(node) {
+    var g = new THREE.Group();
+    var c = node.color;
+    if (node.id === "nhtsa" || node.id === "siam") {          // stacked documents
+      for (var i = 0; i < 4; i++) {
+        var sheet = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.08, 1.6), mat(c, 0.25));
+        sheet.position.set((i % 2) * 0.08, 0.35 + i * 0.16, -(i % 2) * 0.06);
+        sheet.rotation.y = (i - 1.5) * 0.06;
+        g.add(sheet);
+      }
+    } else if (node.id === "db") {                             // database cylinders
+      for (var j = 0; j < 3; j++) {
+        var disc = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.32, 40), mat(0x8e97a6, 0.1));
+        disc.position.y = 0.4 + j * 0.4;
+        g.add(disc);
+        var rim = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.025, 8, 48), mat(0xffffff, 0.6));
+        rim.rotation.x = Math.PI / 2; rim.position.y = 0.56 + j * 0.4;
+        g.add(rim);
+      }
+    } else if (node.id === "family") {                         // US and India names meeting in one ring
+      var ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.05, 12, 64), mat(0xd9dbe0, 0.35));
+      ring.rotation.x = Math.PI / 2; ring.position.y = 0.85; g.add(ring);
+      for (var k = 0; k < 6; k++) {
+        var cube = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), mat(k % 2 ? COLORS.india : COLORS.us, 0.3));
+        var a = (k / 6) * Math.PI * 2;
+        cube.position.set(Math.cos(a) * 0.7, 0.85, Math.sin(a) * 0.7);
+        cube.userData.orbit = a;
+        g.add(cube);
+      }
+      g.userData.spin = true;
+    } else if (node.id === "cand") {                           // funnel
+      var cone = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.18, 1.2, 40, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0xa9b1bf, emissive: 0xa9b1bf, emissiveIntensity: 0.08,
+          roughness: 0.4, metalness: 0.35, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
+      cone.position.y = 0.95; g.add(cone);
+      var wire = new THREE.Mesh(new THREE.CylinderGeometry(0.86, 0.19, 1.21, 20, 4, true),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.18 }));
+      wire.position.y = 0.95; g.add(wire);
+    } else if (node.id === "llm") {                            // model core inside a lattice
+      var core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), mat(COLORS.match, 0.55));
+      core.position.y = 0.95; g.add(core);
+      var shell = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 1),
+        new THREE.MeshBasicMaterial({ color: COLORS.match, wireframe: true, transparent: true, opacity: 0.45 }));
+      shell.position.y = 0.95; g.add(shell);
+      g.userData.spinShell = shell;
+    } else if (node.id === "kpi") {                            // bar chart
+      [0.55, 1.05, 0.8].forEach(function (h, i) {
+        var bar = new THREE.Mesh(new THREE.BoxGeometry(0.3, h, 0.3), mat(i === 1 ? COLORS.match : 0x3987e5, 0.3));
+        bar.position.set(-0.42 + i * 0.42, 0.25 + h / 2, 0);
+        bar.userData.h = h;
+        g.add(bar);
+      });
+      g.userData.bars = true;
+    }
+    return g;
+  }
+
+  NODES.forEach(function (n) {
+    var group = new THREE.Group();
+    group.position.set(n.pos[0], n.pos[1], n.pos[2]);
+    var base = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.22, 6),
+      new THREE.MeshStandardMaterial({ color: 0x232321, roughness: 0.6, metalness: 0.4, emissive: n.color, emissiveIntensity: 0.05 }));
+    base.position.y = -0.9;
+    group.add(base);
+    var edge = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.025, 6, 6), new THREE.MeshBasicMaterial({ color: n.color, transparent: true, opacity: 0.55 }));
+    edge.rotation.x = Math.PI / 2; edge.rotation.z = Math.PI / 6; edge.position.y = -0.78;
+    group.add(edge);
+    var icon = buildIcon(n);
+    icon.position.y = -0.9;
+    group.add(icon);
+    var halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: n.color, transparent: true,
+      opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending }));
+    halo.scale.set(4.2, 4.2, 1); halo.position.y = 0.1;
+    group.add(halo);
+    n.group = group; n.icon = icon; n.halo = halo; n.edge = edge;
+    scene.add(group);
+  });
+
+  // ---- flows: curved tubes with particles moving along them -----------------
+  function logScale(v, lo, hi) {
+    if (v == null || !(v > 0)) return Math.round((lo + hi) / 2);
+    var s = Math.log10(v + 1) / 5;                     // 1e5 -> 1
+    return Math.round(lo + Math.min(1, s) * (hi - lo));
+  }
+  var edgeCounts = {
+    "nhtsa>db": logScale(DATA.us_campaigns, 14, 36),
+    "siam>db": logScale(DATA.siam_recalls, 8, 26),
+    "db>family": logScale(DATA.relevant, 12, 30),
+    "family>cand": logScale(DATA.relevant, 10, 26),
+    "cand>llm": logScale(DATA.pairs, 8, 22),
+    "llm>kpi": logScale(DATA.matched, 4, 14)
+  };
+
+  var flows = [];
+  var dummy = new THREE.Object3D();
+  EDGES.forEach(function (e) {
+    var a = byId[e[0]], b = byId[e[1]];
+    var p0 = new THREE.Vector3(a.pos[0] + 1.1, 0.1, a.pos[2]);
+    var p3 = new THREE.Vector3(b.pos[0] - 1.1, 0.1, b.pos[2]);
+    var mid = p0.clone().lerp(p3, 0.5); mid.y += 0.9;
+    var curve = new THREE.CatmullRomCurve3([p0, p0.clone().lerp(mid, 0.5).setY(0.75), mid, mid.clone().lerp(p3, 0.5).setY(0.75), p3]);
+    var tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.025, 6, false),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 }));
+    scene.add(tube);
+
+    var count = edgeCounts[e[0] + ">" + e[1]];
+    var geo = new THREE.SphereGeometry(0.06, 12, 12);
+    var m = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    var inst = new THREE.InstancedMesh(geo, m, count);
+    var colors = [];
+    for (var i = 0; i < count; i++) {
+      var kind = e[2] === "mix" ? (i % 2 ? "india" : "us") : e[2];
+      inst.setColorAt(i, new THREE.Color(COLORS[kind]));
+      colors.push(kind);
+    }
+    inst.instanceColor.needsUpdate = true;
+    scene.add(inst);
+    flows.push({ from: e[0], to: e[1], curve: curve, tube: tube, inst: inst, count: count,
+      offsets: Array.from({ length: count }, function (_, i) { return i / count + Math.random() * 0.02; }) });
+  });
+
+  // ---- HTML labels projected from 3D ----------------------------------------
+  var labelsEl = document.getElementById("labels");
+  var hexCss = function (c) { return "#" + c.toString(16).padStart(6, "0"); };
+  NODES.forEach(function (n) {
+    var el = document.createElement("div");
+    el.className = "label";
+    el.innerHTML = "<b><span class='dot' style='background:" + hexCss(n.color) + "'></span>" + n.name + "</b><span>" + n.count() + "</span>";
+    el.addEventListener("click", function () {
+      var idx = STEPS.findIndex(function (s) { return s.focus.indexOf(n.id) >= 0; });
+      if (idx >= 0) { goTo(idx); pause(); }
+    });
+    labelsEl.appendChild(el);
+    n.label = el;
+  });
+
+  // ---- camera rig: guided tour plus drag to orbit ---------------------------
+  var target = new THREE.Vector3(0, 0, 0);
+  var lookTarget = new THREE.Vector3(0, 0, 0);
+  var rig = { yaw: 0.0, pitch: 0.72, dist: 22 };
+  var rigGoal = { yaw: 0.0, pitch: 0.72, dist: 22 };
+  var userYaw = 0, userPitch = 0;
+
+  function stepFocusPoint(step) {
+    var v = new THREE.Vector3();
+    step.focus.forEach(function (id) { var p = byId[id].pos; v.add(new THREE.Vector3(p[0], p[1], p[2])); });
+    return v.divideScalar(step.focus.length);
+  }
+
+  var current = 0, playing = !reduceMotion, stepStart = performance.now();
+  var STEP_MS = 6500;
+
+  var dotsEl = document.getElementById("dots");
+  STEPS.forEach(function (s, i) {
+    var d = document.createElement("button");
+    d.setAttribute("aria-label", "Step " + (i + 1) + ": " + s.title);
+    d.addEventListener("click", function () { goTo(i); pause(); });
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(i) {
+    current = (i + STEPS.length) % STEPS.length;
+    stepStart = performance.now();
+    var s = STEPS[current];
+    target.copy(stepFocusPoint(s));
+    rigGoal.dist = s.focus.length > 1 ? 17.5 : 15;
+    rigGoal.yaw = -0.18 + current * 0.06;
+    rigGoal.pitch = 0.66;
+    document.getElementById("step-no").textContent = current + 1;
+    document.getElementById("step-title").textContent = s.title;
+    document.getElementById("step-text").textContent = s.text;
+    document.getElementById("step-stat").innerHTML = s.stat();
+    Array.prototype.forEach.call(dotsEl.children, function (d, k) { d.classList.toggle("on", k === current); });
+    NODES.forEach(function (n) {
+      var on = s.focus.indexOf(n.id) >= 0;
+      n.label.classList.toggle("active", on);
+      n.label.classList.toggle("dim", !on);
+    });
+  }
+  function pause() { playing = false; document.getElementById("play").textContent = "Play"; document.getElementById("play").setAttribute("aria-label", "Play tour"); }
+  function play() { playing = true; stepStart = performance.now(); document.getElementById("play").textContent = "Pause"; document.getElementById("play").setAttribute("aria-label", "Pause tour"); }
+  document.getElementById("prev").addEventListener("click", function () { goTo(current - 1); pause(); });
+  document.getElementById("next").addEventListener("click", function () { goTo(current + 1); pause(); });
+  document.getElementById("play").addEventListener("click", function () { playing ? pause() : play(); });
+  if (!playing) pause();
+
+  // Drag to orbit (no extra library needed).
+  var dragging = false, lastX = 0, lastY = 0;
+  renderer.domElement.addEventListener("pointerdown", function (ev) {
+    dragging = true; lastX = ev.clientX; lastY = ev.clientY;
+    renderer.domElement.setPointerCapture(ev.pointerId);
+  });
+  renderer.domElement.addEventListener("pointermove", function (ev) {
+    if (!dragging) return;
+    userYaw -= (ev.clientX - lastX) * 0.006;
+    userPitch = Math.max(-0.45, Math.min(0.5, userPitch + (ev.clientY - lastY) * 0.004));
+    lastX = ev.clientX; lastY = ev.clientY;
+  });
+  renderer.domElement.addEventListener("pointerup", function () { dragging = false; });
+  renderer.domElement.addEventListener("wheel", function (ev) {
+    ev.preventDefault();
+    rigGoal.dist = Math.max(7, Math.min(30, rigGoal.dist + ev.deltaY * 0.01));
+  }, { passive: false });
+
+  // ---- sizing ---------------------------------------------------------------
+  function resize() {
+    var w = stageEl.clientWidth, h = stageEl.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.fov = w < 640 ? 55 : 42;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stageEl);
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ---- animation loop -------------------------------------------------------
+  var tmp = new THREE.Vector3();
+  var clock = new THREE.Clock();
+  var lastLabel = 0;
+  goTo(0);
+  lookTarget.copy(target);
+
+  function frame(now) {
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+    var speed = reduceMotion ? 0.25 : 1;
+
+    if (playing && now - stepStart > STEP_MS) goTo(current + 1);
+    var prog = playing ? Math.min(1, (now - stepStart) / STEP_MS) : 0;
+    document.querySelector("#progress div").style.width = (prog * 100).toFixed(1) + "%";
+
+    // ease the rig toward its goal
+    var k = 1 - Math.pow(0.0015, dt);
+    rig.yaw += (rigGoal.yaw + userYaw + (reduceMotion ? 0 : Math.sin(t * 0.15) * 0.05) - rig.yaw) * k;
+    rig.pitch += (rigGoal.pitch + userPitch - rig.pitch) * k;
+    rig.dist += (rigGoal.dist - rig.dist) * k;
+    lookTarget.lerp(target, k);
+    camera.position.set(
+      lookTarget.x + Math.sin(rig.yaw) * Math.cos(rig.pitch) * rig.dist,
+      lookTarget.y + Math.sin(rig.pitch) * rig.dist,
+      lookTarget.z + Math.cos(rig.yaw) * Math.cos(rig.pitch) * rig.dist);
+    camera.lookAt(lookTarget.x, lookTarget.y - 1.1, lookTarget.z + 0.5);
+
+    // nodes: bob, highlight the active stage
+    var focus = STEPS[current].focus;
+    NODES.forEach(function (n, i) {
+      var on = focus.indexOf(n.id) >= 0;
+      n.icon.position.y = -0.9 + Math.sin(t * 1.4 * speed + i) * 0.06;
+      var targetOpacity = on ? 0.55 + Math.sin(t * 3) * 0.08 : 0.16;
+      n.halo.material.opacity += (targetOpacity - n.halo.material.opacity) * 0.08;
+      n.edge.material.opacity = on ? 0.95 : 0.4;
+      if (n.icon.userData.spin) {
+        n.icon.children.forEach(function (c) {
+          if (c.userData.orbit !== undefined) {
+            var a = c.userData.orbit + t * 0.8 * speed;
+            c.position.x = Math.cos(a) * 0.7; c.position.z = Math.sin(a) * 0.7;
+            c.rotation.y = a;
+          }
+        });
+      }
+      if (n.icon.userData.spinShell) {
+        n.icon.userData.spinShell.rotation.y += dt * 0.6 * speed;
+        n.icon.userData.spinShell.rotation.x += dt * 0.25 * speed;
+      }
+      if (n.icon.userData.bars) {
+        n.icon.children.forEach(function (b, j) {
+          var s = 0.85 + 0.15 * Math.sin(t * 2 * speed + j * 1.3);
+          b.scale.y = s; b.position.y = 0.25 + (b.userData.h * s) / 2;
+        });
+      }
+    });
+
+    // particles
+    flows.forEach(function (f) {
+      var active = focus.indexOf(f.from) >= 0 || focus.indexOf(f.to) >= 0;
+      f.tube.material.opacity += ((active ? 0.32 : 0.1) - f.tube.material.opacity) * 0.08;
+      for (var i = 0; i < f.count; i++) {
+        var u = (f.offsets[i] + t * 0.11 * speed) % 1;
+        f.curve.getPointAt(u, tmp);
+        dummy.position.copy(tmp);
+        var s = 0.7 + Math.sin(u * Math.PI) * 0.6;
+        dummy.scale.setScalar(s);
+        dummy.updateMatrix();
+        f.inst.setMatrixAt(i, dummy.matrix);
+      }
+      f.inst.instanceMatrix.needsUpdate = true;
+    });
+
+    renderer.render(scene, camera);
+
+    // labels (throttled a little)
+    if (now - lastLabel > 30) {
+      lastLabel = now;
+      var w = stageEl.clientWidth, h = stageEl.clientHeight;
+      NODES.forEach(function (n) {
+        tmp.set(n.pos[0], n.pos[1] + 1.55, n.pos[2]).project(camera);
+        var px = (tmp.x + 1) / 2 * w, py = (1 - tmp.y) / 2 * h;
+        var half = (n.label.offsetWidth || 160) / 2;
+        var visible = tmp.z < 1 && px - half > 8 && px + half < w - 8 && py > 96 && py < h - 40;
+        n.label.style.display = visible ? "block" : "none";
+        n.label.style.left = px.toFixed(1) + "px";
+        n.label.style.top = py.toFixed(1) + "px";
+      });
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
