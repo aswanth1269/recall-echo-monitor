@@ -2,7 +2,7 @@
 
 Ground truth: `data/reference/ground_truth.csv` - 30 pairs, 5 labelled `same`, 25 `different`. Positive class: `same`.
 
-**Who labelled it:** Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified; human_label filled for 0 of 30. Until a person confirms these labels, the numbers below measure agreement with those labels, not accuracy.
+**Who labelled it:** Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified - all 30 pairs; no human labels yet in human_labels.csv. Until a person has labelled every pair, the numbers below partly measure agreement with Claude's labels, not accuracy.
 
 ## Read this first
 
@@ -48,7 +48,7 @@ No LLM `same` pairs have been reviewed yet (run `python -m src.review`).
 
 ### 18V042000-38 (HONDA) - wrong: baseline
 
-- **Ground truth:** `same` (high confidence) - Airbag inflator ruptures from excessive internal pressure; Civic on both sides (US 2010-2011 Civic in scope)
+- **Ground truth:** `same` (labelled by Claude, high confidence) - Airbag inflator ruptures from excessive internal pressure; Civic on both sides (US 2010-2011 Civic in scope)
 - **LLM:** `same` (confidence 0.90)
   - US evidence: "may explode due to propellant degradation occurring after long-term exposure"
   - India evidence: "the inflator body may get ruptured due to excessive internal pressure"

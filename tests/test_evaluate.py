@@ -199,28 +199,60 @@ def test_main_prints_summary(monkeypatch, capsys):
 
 # ---------- human labels and reviewed precision ----------
 
-def test_human_label_overrides_claude_label(tmp_path):
-    gt = tmp_path / "gt.csv"
-    pd.DataFrame({"pair_id": ["A-1", "B-2"], "label": ["same", "different"],
-                  "human_label": ["different", ""], "reason": ["", ""]}).to_csv(gt, index=False)
-    df = ev.load_ground_truth(gt)
-    assert df.label.tolist() == ["different", "different"]
-    assert df.label_source.tolist() == ["human", "claude"]
-    assert not ev.human_verified(df)
+def _human(gt_file: Path, rows: list[tuple[str, str, str]]) -> Path:
+    p = gt_file.parent / "human_labels.csv"
+    pd.DataFrame(rows, columns=["pair_id", "human_label", "note"]).to_csv(p, index=False)
+    return p
 
 
-def test_ground_truth_without_human_label_column_still_loads(tmp_path):
-    gt = tmp_path / "gt.csv"
-    pd.DataFrame({"pair_id": ["A-1"], "label": ["same"]}).to_csv(gt, index=False)
-    assert ev.load_ground_truth(gt).label_source.tolist() == ["claude"]
+def test_human_label_overrides_claude_label_for_that_pair_only(gt_file):
+    _human(gt_file, [("A-1", "different", "trim differs"), ("B-2", "", "")])
+    df = ev.load_ground_truth(gt_file).set_index("pair_id")
+    assert df.loc["A-1", "label"] == "different" and df.loc["A-1", "label_source"] == "human"
+    assert df.loc["A-1", "reason"] == "trim differs" and df.loc["A-1", "confidence"] == "human"
+    assert df.loc["B-2", "label"] == "different" and df.loc["B-2", "label_source"] == "claude"
+    assert df.loc["C-3", "label"] == "same"                   # Claude's label kept
+    assert not ev.human_verified(df.reset_index())
 
 
-def test_bad_human_label_is_refused(tmp_path):
-    gt = tmp_path / "gt.csv"
-    pd.DataFrame({"pair_id": ["A-1"], "label": ["same"],
-                  "human_label": ["maybe"]}).to_csv(gt, index=False)
-    with pytest.raises(ValueError, match="human_label"):
-        ev.load_ground_truth(gt)
+def test_missing_human_labels_file_means_all_claude(gt_file):
+    df = ev.load_ground_truth(gt_file)
+    assert set(df.label_source) == {"claude"}
+    assert "no human labels yet" in ev.labelled_by_text(df)
+
+
+@pytest.mark.parametrize("rows, message", [
+    ([("A-1", "maybe", "")], "same, different or blank"),
+    ([("Z-9", "same", "")], "not in the ground truth"),
+    ([("A-1", "same", ""), ("A-1", "different", "")], "listed twice"),
+])
+def test_bad_human_labels_are_refused(gt_file, rows, message):
+    _human(gt_file, rows)
+    with pytest.raises(ValueError, match=message):
+        ev.load_ground_truth(gt_file)
+
+
+def test_labelled_by_text_partial_and_complete(gt_file):
+    _human(gt_file, [("A-1", "same", ""), ("B-2", "Different", "")])     # case-insensitive
+    text = ev.labelled_by_text(ev.load_ground_truth(gt_file))
+    assert text.startswith("a person for 2 of 4 pairs (human_labels.csv)")
+    assert "test labeller for the other 2" in text
+    _human(gt_file, [(p, "same", "") for p in ("A-1", "B-2", "C-3", "D-4")])
+    assert ev.labelled_by_text(ev.load_ground_truth(gt_file)) ==         "a person for all 4 pairs (human_labels.csv)"
+
+
+def test_report_names_who_labelled_and_leaves_human_file_untouched(tmp_path, gt_file):
+    # A-1: the LLM says same, the person says different -> listed as a disagreement
+    hl = _human(gt_file, [("A-1", "different", "checked"), ("C-3", "different", "")])
+    before = hl.read_bytes()
+    out = tmp_path / "eval.md"
+    ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out)
+    text = out.read_text(encoding="utf-8")
+    assert "**Who labelled it:** a person for 2 of 4 pairs (human_labels.csv)" in text
+    assert "(labelled by a person) - note: checked" in text
+    assert hl.read_bytes() == before
+    summary = pd.read_csv(tmp_path / "eval_summary.csv")
+    assert summary.labelled_by.iloc[0].startswith("a person for 2 of 4")
 
 
 def test_reviewed_precision_none_without_table(tmp_path):

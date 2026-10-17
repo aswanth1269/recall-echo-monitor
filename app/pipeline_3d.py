@@ -97,18 +97,12 @@ def _safe(read):
 
 
 def headline_numbers() -> dict[str, float | None]:
-    """Overall echo rate, median lag and LLM F1 (None if missing, malformed or suppressed)."""
-    out: dict[str, float | None] = {
-        "echo_rate": _overall(_safe(ds.echo_rate), "echo_rate"),
-        "median_lag_days": _overall(_safe(ds.echo_lag), "median_days"),
-        "f1": None,
-    }
-    ev = _safe(ds.eval_summary)
-    if ev is not None:
-        llm = ev[ev["matcher"].astype(str).str.lower() == "llm"]
-        if not llm.empty:
-            out["f1"] = _num(llm.iloc[0]["f1"])
-    return out
+    """Overall echo rate and median lag (None if missing or malformed).
+
+    Matcher F1 is deliberately not here: it is shown only on the dashboard's Method tab.
+    """
+    return {"echo_rate": _overall(_safe(ds.echo_rate), "echo_rate"),
+            "median_lag_days": _overall(_safe(ds.echo_lag), "median_days")}
 
 
 def build_html(data: dict[str, Any], template: Path = TEMPLATE, three_js: Path = THREE_JS) -> str:

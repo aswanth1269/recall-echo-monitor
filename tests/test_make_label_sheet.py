@@ -137,3 +137,46 @@ def test_main_reports_and_passes_force(monkeypatch, capsys):
     ls.main(["--force"])
     out = capsys.readouterr().out
     assert seen["force"] is True and "30 pairs" in out and "10 top" in out
+
+
+# ---------- blind human-label template ----------
+
+def _sheet(tmp_path: Path) -> Path:
+    p = tmp_path / "label_sheet.csv"
+    pd.DataFrame({"pair_id": ["B-2", "A-1"], "make": ["MB", "MB"],
+                  "us_defect_text": ["brake hose may leak", "trim bar may detach"],
+                  "siam_defect_text": ["airbag", "trim bar"], "label": ["", ""]}
+                 ).to_csv(p, index=False, encoding="utf-8-sig")
+    return p
+
+
+def test_template_has_only_ids_and_empty_columns_in_sheet_order(tmp_path):
+    t = ls.human_labels_template(pd.read_csv(_sheet(tmp_path), dtype=str, encoding="utf-8-sig"))
+    assert list(t.columns) == ["pair_id", "human_label", "note"]
+    assert t.pair_id.tolist() == ["B-2", "A-1"]
+    assert (t.human_label == "").all() and (t.note == "").all()
+
+
+def test_write_human_labels_never_overwrites(tmp_path):
+    out = tmp_path / "human_labels.csv"
+    assert ls.write_human_labels(_sheet(tmp_path), out) == 2
+    out.write_text("pair_id,human_label,note\nB-2,same,mine\n", encoding="utf-8")
+    with pytest.raises(FileExistsError, match="human_labels.csv"):
+        ls.write_human_labels(_sheet(tmp_path), out)
+    assert "mine" in out.read_text(encoding="utf-8")            # your labels survive
+
+
+def test_main_human_labels_flag(monkeypatch, capsys):
+    monkeypatch.setattr(ls, "write_human_labels", lambda: 30)
+    monkeypatch.setattr(ls, "build", lambda force=False: pytest.fail("must not rebuild the sheet"))
+    ls.main(["--human-labels"])
+    assert "30 pairs" in capsys.readouterr().out
+
+
+def test_main_human_labels_refusal_is_a_plain_message(monkeypatch, capsys):
+    def exists():
+        raise FileExistsError("human_labels.csv already exists - never overwritten")
+    monkeypatch.setattr(ls, "write_human_labels", exists)
+    with pytest.raises(SystemExit) as stop:
+        ls.main(["--human-labels"])
+    assert stop.value.code == 1 and "already exists" in capsys.readouterr().out

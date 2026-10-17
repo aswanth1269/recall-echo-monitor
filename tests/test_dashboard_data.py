@@ -45,9 +45,12 @@ FILES = {
         "the driver's air  bag may rupture,airbag inflator may rupture\n"
         "20V002000,TINYCO,mass_market,2020-02-01,SEATS,Seat may detach.,no_candidate,,,,,,,\n",
     "reports/eval_summary.csv":
-        "matcher,n,positives,tp,fp,fn,tn,precision,recall,f1,precision_n,recall_n,f1_n,threshold,note\n"
-        "llm,30,5,5,0,0,25,,,1.0,5,5,10,,tuned\n"
-        "baseline,30,5,4,0,1,25,,,,4,5,9,0.2177,flatters\n",
+        "matcher,n,positives,tp,fp,fn,tn,precision,recall,f1,precision_n,recall_n,f1_n,threshold,"
+        "note,labelled_by\n"
+        "llm,30,5,5,0,0,25,,,1.0,5,5,10,,tuned,"
+        "a person for 2 of 30 pairs (human_labels.csv); Claude for the other 28\n"
+        "baseline,30,5,4,0,1,25,,,,4,5,9,0.2177,flatters,"
+        "a person for 2 of 30 pairs (human_labels.csv); Claude for the other 28\n",
     "docs/SOURCES.md": "| Retrieved | 2026-10-13 |\n",
 }
 
@@ -164,10 +167,34 @@ def test_small_n_rates_are_not_shown_anywhere(project):
     assert "TINYCO</b><br>Echo rate" not in specs       # no rate in the hover for n < 10
 
 
-def test_matcher_tile_states_who_labelled_and_tuning(project):
-    text = " ".join(m.value for m in _run(project).markdown)
-    assert "labelled by Claude and tuned on" in text
-    assert "labelled by hand" not in text
+def test_overview_has_pairs_reviewed_tile_not_f1(review_project):
+    at = _run(review_project)
+    overview = " ".join(m.value for m in at.tabs[0].markdown)
+    assert "Pairs reviewed" in overview and "1 of 2" in overview
+    assert "n&lt;10, share not shown" in overview or "n<10, share not shown" in overview
+    assert "F1" not in overview
+
+
+def test_f1_only_on_method_tab_with_who_labelled(review_project):
+    at = _run(review_project)
+    assert "F1" not in " ".join(m.value for m in at.tabs[1].markdown)
+    method = at.tabs[-1]
+    assert any("f1" in d.value.columns.tolist() for d in method.dataframe)
+    assert "a person for 2 of 30 pairs" in " ".join(c.value for c in method.caption)
+
+
+def test_pair_review_summary_counts_llm_same_pairs(review_project):
+    assert ds.pair_review_summary() == {"n_llm_same": 2, "n_reviewed": 1, "n_confirmed": 1}
+
+
+def test_pairs_reviewed_tile_shows_share_from_ten(review_project):
+    rows = "".join(
+        f"pair||BIGCO|21V{i:03d}000-1,5,pair,,BIGCO,21V{i:03d}000-1,reviewed,same,0.9,a,b,,,,"
+        f"{'d' * 16},{'same' if i < 9 else 'different'},,,,,\n" for i in range(10))
+    q = review_project / "data/clean/review_queue.csv"
+    q.write_text(q.read_text(encoding="utf-8") + rows, encoding="utf-8")
+    overview = " ".join(m.value for m in _run(review_project).tabs[0].markdown)
+    assert "11 of 12" in overview and "10 confirmed" in overview and "n=11" in overview
 
 
 def test_malformed_file_is_named_not_a_crash(project):

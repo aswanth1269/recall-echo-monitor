@@ -14,7 +14,13 @@ labelling is done.
 An existing sheet that already has labels is never overwritten unless
 --force is given.
 
+--human-labels writes data/reference/human_labels.csv (pair_id, human_label,
+note) from the sheet, in the sheet's order and with both columns empty, so a
+person can label blind. It reads only the sheet - never ground_truth.csv - and
+never overwrites an existing file.
+
 Run:  .venv/Scripts/python.exe -m src.make_label_sheet [--force]
+      .venv/Scripts/python.exe -m src.make_label_sheet --human-labels
 """
 
 from __future__ import annotations
@@ -32,6 +38,8 @@ from src.load_nhtsa import DB_PATH
 ROOT = Path(__file__).resolve().parents[1]
 SHEET_CSV = ROOT / "data/clean/label_sheet.csv"
 KEY_CSV = ROOT / "data/clean/label_sheet_key.csv"
+HUMAN_LABELS_CSV = ROOT / "data/reference/human_labels.csv"
+HUMAN_LABEL_COLUMNS = ["pair_id", "human_label", "note"]
 SEED = 20261015
 PER_BAND = 10
 BANDS = ("top", "middle", "bottom")
@@ -122,8 +130,35 @@ def build(db_path: Path = DB_PATH, sheet_csv: Path = SHEET_CSV, key_csv: Path = 
     return key
 
 
+def human_labels_template(sheet: pd.DataFrame) -> pd.DataFrame:
+    """pair_id in the sheet's (blind) order, with empty human_label and note."""
+    return pd.DataFrame({"pair_id": sheet.pair_id.astype(str).str.strip(),
+                         "human_label": "", "note": ""})[HUMAN_LABEL_COLUMNS]
+
+
+def write_human_labels(sheet_csv: Path = SHEET_CSV, out_csv: Path = HUMAN_LABELS_CSV) -> int:
+    """Write the empty human-label file from the sheet; refuse to overwrite. Returns rows."""
+    if out_csv.exists():
+        raise FileExistsError(f"{out_csv.name} already exists - it may hold your labels, "
+                              "so it is never overwritten")
+    sheet = pd.read_csv(sheet_csv, dtype=str, keep_default_na=False, encoding="utf-8-sig")
+    out = human_labels_template(sheet)
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(out_csv, index=False, encoding="utf-8")
+    return len(out)
+
+
 def main(argv: list[str] | None = None) -> None:
     args = sys.argv[1:] if argv is None else argv
+    if "--human-labels" in args:
+        try:
+            n = write_human_labels()
+        except FileExistsError as exc:
+            print(exc)
+            raise SystemExit(1) from None
+        print(f"wrote {n} pairs to data/reference/human_labels.csv - fill human_label with "
+              "same or different, reading the texts in data/clean/label_sheet.csv")
+        return
     key = build(force="--force" in args)
     print(f"wrote {len(key)} pairs to {SHEET_CSV.relative_to(ROOT)} "
           f"({', '.join(f'{n} {b}' for b, n in key.band.value_counts().reindex(BANDS).items())}; "

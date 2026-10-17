@@ -154,6 +154,21 @@ def review_queue() -> pd.DataFrame | None:
     return df
 
 
+def pair_review_summary() -> dict[str, int] | None:
+    """LLM `same` pairs in the queue: how many there are, reviewed, and confirmed `same`.
+
+    Counts come from the queue as of the last `python -m src.review` run; a
+    stale decision (text changed since) does not count as reviewed.
+    """
+    q = review_queue()
+    if q is None:
+        return None
+    same = q[(q["kind"] == "pair") & (q["order"].astype(str) == "5")]
+    reviewed = same[same["status"] == "reviewed"]
+    return {"n_llm_same": len(same), "n_reviewed": len(reviewed),
+            "n_confirmed": int((reviewed["previous_decision"] == "same").sum())}
+
+
 def decisions_newer_than_queue() -> bool:
     """True when a decision was saved after the queue (and matches_reviewed) were built."""
     q = path("review_queue")

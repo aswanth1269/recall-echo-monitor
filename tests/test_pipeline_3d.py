@@ -59,16 +59,14 @@ def test_headline_numbers_read_pipeline_files(tmp_path, monkeypatch):
         "all,ALL,40,10,0.25,0\nmake,X,40,10,0.25,0\n")
     out = pipeline_3d.headline_numbers()
     assert out["echo_rate"] == 0.25
-    assert out["median_lag_days"] is None and out["f1"] is None
+    assert out["median_lag_days"] is None
 
 
-def test_headline_f1_suppressed_stays_none(tmp_path, monkeypatch):
-    monkeypatch.setenv("RECALL_ECHO_ROOT", str(tmp_path))
-    (tmp_path / "reports").mkdir()
-    (tmp_path / "reports/eval_summary.csv").write_text(
-        "matcher,n,positives,tp,fp,fn,tn,precision,recall,f1,precision_n,recall_n,f1_n\n"
-        "llm,30,4,3,1,1,25,,,,4,4,8\n")
-    assert pipeline_3d.headline_numbers()["f1"] is None    # n < 10: not shown
+def test_f1_is_not_a_headline_number_or_in_the_page():
+    # F1 is shown only on the dashboard's Method tab
+    assert "f1" not in pipeline_3d.headline_numbers()
+    page = (Path(pipeline_3d.__file__).parent / "assets/pipeline_3d.html").read_text(encoding="utf-8")
+    assert "DATA.f1" not in page and "F1" not in page
 
 
 def test_malformed_kpi_file_gives_none_not_a_crash(tmp_path, monkeypatch):

@@ -183,7 +183,7 @@
       stat: function () { return fmt(DATA.pairs) + " candidate pairs to check"; } },
     { focus: ["llm"], title: "The LLM judges, code verifies",
       text: "An LLM labels each pair same or different and quotes its evidence from both texts. Python checks every quote really exists, or the pair goes to review.",
-      stat: function () { return fmt(DATA.matched) + " US campaigns where a person confirmed the LLM's India echo" + (DATA.f1 != null ? " <em>· F1 on 30 tuned test pairs</em> " + Number(DATA.f1).toFixed(2) : ""); } },
+      stat: function () { return fmt(DATA.matched) + " US campaigns where a person confirmed the LLM's India echo"; } },
     { focus: ["kpi"], title: "Measure the echo",
       text: "Echo rate, the lag in days, the gaps by component, and the over-the-air share. Every rate shows its n. A missing India recall is a transparency signal, not proof of wrongdoing.",
       stat: function () { return "Echo rate " + fmt(DATA.echo_rate) + " <em>· median lag</em> " + (DATA.median_lag_days != null ? fmt(DATA.median_lag_days) + " days" : "—"); } }

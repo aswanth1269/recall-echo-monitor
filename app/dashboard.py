@@ -180,7 +180,7 @@ with tab_overview:
     ota, evals = data("ota_share"), data("eval_summary")
 
     o_rate, o_lag, o_ota = rows(rate, "overall"), rows(lag, "overall"), rows(ota, "overall")
-    llm = evals[evals["matcher"].astype(str).str.lower() == "llm"] if evals is not None else pd.DataFrame()
+    pr = data("pair_review_summary")      # F1 is shown only on the Method tab
 
     def tile(k: str, v: str, s: str, share: float | None, color: str) -> str:
         width = 0 if share is None or pd.isna(share) else max(0, min(100, share * 100))
@@ -190,7 +190,6 @@ with tab_overview:
     r = o_rate.iloc[0] if not o_rate.empty else None
     l = o_lag.iloc[0] if not o_lag.empty else None
     o = o_ota.iloc[0] if not o_ota.empty else None
-    e = llm.iloc[0] if not llm.empty else None
     st.markdown("<div class='tiles'>" + "".join([
         tile("Echo rate", pct(r["echo_rate"]) if r is not None else "—",
              (f"{int(r['echoing'])} of {int(r['n'])} US campaigns on India-sold models, confirmed by a person"
@@ -204,12 +203,16 @@ with tab_overview:
              f"{int(o['ota_n'])} of {int(o['n'])} campaigns with a known flag (API flag; a lower bound)"
              if o is not None else "run src.fetch_ota then src.kpis",
              o["ota_share"] if o is not None else None, US),
-        tile("Matcher F1",
-             (f"{e['f1']:.2f}" if pd.notna(e["f1"]) else "n<10") if e is not None else "—",
-             (f"found {int(e['tp'])} of {int(e['positives'])} echoes · {int(e['fp'])} false · "
-              f"{int(e['n'])} test pairs, labelled by Claude and tuned on")
-             if e is not None else "run src.evaluate",
-             e["f1"] if e is not None and pd.notna(e["f1"]) else None, INK_2),
+        tile("Pairs reviewed",
+             f"{pr['n_reviewed']} of {pr['n_llm_same']}" if pr else "—",
+             (f"{pr['n_confirmed']} confirmed · "
+              + (f"share {pr['n_confirmed'] / pr['n_reviewed'] * 100:.0f}% (n={pr['n_reviewed']})"
+                 if pr["n_reviewed"] >= MIN_N else
+                 f"n&lt;{MIN_N}, share not shown (n={pr['n_reviewed']})")
+              + " · LLM echoes a person checked")
+             if pr else "run src.review",
+             pr["n_confirmed"] / pr["n_reviewed"] if pr and pr["n_reviewed"] >= MIN_N else None,
+             MATCH),
     ]) + "</div>", unsafe_allow_html=True)
 
     c1, c2 = st.columns([3, 2], gap="large")
@@ -519,8 +522,10 @@ with tab_method:
             st.dataframe(show, hide_index=True, width="stretch",
                          column_config={c: st.column_config.NumberColumn(c.capitalize(), format="%.2f")
                                         for c in ("precision", "recall", "f1")})
-            st.caption(f"Agreement with {int(evals['n'].iloc[0])} test pairs labelled by Claude, "
-                       "not yet checked by a person. The LLM prompt and the baseline threshold were "
+            who = (ds.text(evals["labelled_by"].iloc[0]) if "labelled_by" in evals
+                   else "Claude, not yet checked by a person")
+            st.caption(f"Agreement with {int(evals['n'].iloc[0])} test pairs. Truth labelled by: "
+                       f"{who}. The LLM prompt and the baseline threshold were "
                        f"both tuned on these same pairs, so this is not an accuracy estimate. Rates "
                        f"with fewer than {MIN_N} cases are left blank; the counts are all there.")
         st.subheader("Sources")
