@@ -31,10 +31,13 @@ import os
 from datetime import date
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 
 from src import model_family
 from src.csv_safe import excel_safe_value
+from src.fingerprint import fingerprint
+from src.matcher import load_pairs
 
 ROOT = Path(__file__).resolve().parents[1]
 REF_DIR = ROOT / "data/reference"
@@ -199,3 +202,148 @@ def outstanding(queue_df: pd.DataFrame, ref_dir: Path = REF_DIR) -> pd.DataFrame
     keep = pd.Series([not decided(r) for r in todo.itertuples(index=False)],
                      index=todo.index, dtype=bool)
     return todo[keep].reset_index(drop=True)
+
+
+# ---------- the queue ----------
+
+QUEUE_COLUMNS = ["item_id", "order", "kind", "side", "make", "key", "status",
+                 "llm_answer", "confidence", "us_text", "india_text", "us_evidence",
+                 "india_evidence", "reason", "fingerprint", "previous_decision"]
+ORDER = {"family_llm": 1, "family_zero": 2, "vocabulary": 3, "needs_review": 4,
+         "same": 5, "family_none": 6, "orphaned": 7}
+DEFAULT_ORDERS = (1, 2, 3, 4, 5)
+
+
+def _item(order: int, kind: str, side: str, make: str, key: str, **kw) -> dict:
+    row = {c: None for c in QUEUE_COLUMNS}
+    row.update(order=order, kind=kind, side=side, make=make, key=str(key), status="open",
+               item_id=f"{kind}|{side}|{make}|{key}")
+    row.update(kw)
+    return row
+
+
+def _resolve(items: dict, decisions: list[tuple], lookup) -> list[dict]:
+    """Attach decisions to items.
+
+    items: key tuple -> open item. decisions: (key tuple, decision value, fingerprint).
+    lookup(key tuple) -> item for an existing thing that is not a default candidate, or None.
+    Current decision (blank or equal fingerprint) -> reviewed; different -> stale;
+    nothing to attach to -> orphaned.
+    """
+    items = dict(items)
+    for k, value, fp in decisions:
+        item = items.get(k) or lookup(k)
+        if item is None:
+            kind, side, make, key = k
+            items[k] = _item(ORDER["orphaned"], kind, side, make, key, status="orphaned",
+                             previous_decision=value, reason="decision has no matching item")
+            continue
+        status = "reviewed" if fp in ("", item["fingerprint"]) else "stale"
+        items[k] = {**item, "status": status, "previous_decision": value}
+    return list(items.values())
+
+
+def _family_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
+    nhtsa = con.execute("SELECT make, MODELTXT, family, method FROM nhtsa_model_family").df()
+    siam = con.execute("SELECT csv_row, make, model FROM siam_recalls").df()
+    with_family = {int(r[0]) for r in con.execute(
+        "SELECT DISTINCT csv_row FROM siam_row_family").fetchall()}
+
+    def nhtsa_item(r, order):
+        llm = r.method == "llm"
+        return _item(order, "family", "nhtsa", r.make, r.MODELTXT, us_text=r.MODELTXT,
+                     llm_answer=(_s(r.family) or model_family.NONE) if llm else None,
+                     reason="an LLM chose this family" if llm else None,
+                     fingerprint=model_family.override_fingerprint(
+                         "nhtsa", r.make, r.MODELTXT, r.MODELTXT))
+
+    def siam_item(r):
+        return _item(ORDER["family_zero"], "family", "siam", r.make, str(r.csv_row),
+                     india_text=r.model,
+                     reason=("SIAM row produced zero families" if r.csv_row not in with_family
+                             else "SIAM row has a family decision"),
+                     fingerprint=model_family.override_fingerprint(
+                         "siam", r.make, str(r.csv_row), r.model))
+
+    items = {}
+    for r in nhtsa[nhtsa.method == "llm"].itertuples(index=False):
+        order = ORDER["family_llm"] if _s(r.family) else ORDER["family_none"]
+        items[("family", "nhtsa", r.make, r.MODELTXT)] = nhtsa_item(r, order)
+    for r in siam[~siam.csv_row.isin(with_family)].itertuples(index=False):
+        items[("family", "siam", r.make, str(r.csv_row))] = siam_item(r)
+
+    by_nhtsa = {(r.make, r.MODELTXT): r for r in nhtsa.itertuples(index=False)}
+    by_siam = {(r.make, str(r.csv_row)): r for r in siam.itertuples(index=False)}
+
+    def lookup(k):
+        _, side, make, key = k
+        if side == "nhtsa" and (make, key) in by_nhtsa:
+            return nhtsa_item(by_nhtsa[(make, key)], ORDER["family_llm"])
+        if side == "siam" and (make, key) in by_siam:
+            return siam_item(by_siam[(make, key)])
+        return None
+
+    dec = [(("family", r.side, r.make, r.key), r.family, r.fingerprint)
+           for r in read_decisions("family", ref_dir).itertuples(index=False)]
+    return _resolve(items, dec, lookup)
+
+
+def _vocabulary_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
+    vocab = pd.read_csv(ref_dir / VOCAB_FILE, dtype=str, keep_default_na=False)
+    models = con.execute("SELECT DISTINCT make, MODELTXT FROM nhtsa_focus "
+                         "WHERE MODELTXT IS NOT NULL").df()
+    flags = model_family.vocabulary_review(vocab, models)
+    if len(flags):
+        flags = flags.groupby(["make", "family"], as_index=False).review_note.agg(" | ".join)
+    items = {("vocabulary", "", r.make, r.family): _item(
+        ORDER["vocabulary"], "vocabulary", "", r.make, r.family, india_text=r.family,
+        reason=r.review_note,
+        fingerprint=fingerprint("vocabulary", r.make, r.family, r.review_note))
+        for r in flags.itertuples(index=False)}
+    dec = [(("vocabulary", "", r.make, r.family), r.decision, r.fingerprint)
+           for r in read_decisions("vocabulary", ref_dir).itertuples(index=False)]
+    return _resolve(items, dec, lambda k: None)
+
+
+def _pair_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
+    decisions = read_decisions("pair", ref_dir)
+    try:
+        m = con.execute("""SELECT pair_id, CAMPNO, make, csv_row, label, llm_label, confidence,
+                                  us_evidence, india_evidence, review_reason, fingerprint
+                           FROM matches""").df()
+    except duckdb.BinderException:
+        raise ValueError("matches has no fingerprint column; "
+                         "run python -m src.matcher --all") from None
+    wanted = m[m.label.isin(["same", "needs_review"]) | m.pair_id.isin(decisions.pair_id)]
+    texts = load_pairs(con, wanted[["CAMPNO", "csv_row"]]).set_index("pair_id")
+
+    def pair_item(r):
+        order = ORDER["same"] if r.label == "same" else ORDER["needs_review"]
+        t = texts.loc[r.pair_id] if r.pair_id in texts.index else None
+        return _item(order, "pair", "", r.make, r.pair_id,
+                     llm_answer="needs_review" if r.label == "needs_review" else r.llm_label,
+                     confidence=r.confidence, us_evidence=r.us_evidence,
+                     india_evidence=r.india_evidence, reason=r.review_reason,
+                     us_text=None if t is None else t.us_text,
+                     india_text=None if t is None else t.india_text,
+                     fingerprint=r.fingerprint)
+
+    by_id = {r.pair_id: r for r in wanted.itertuples(index=False)}
+    items = {("pair", "", r.make, r.pair_id): pair_item(r)
+             for r in wanted[wanted.label.isin(["same", "needs_review"])].itertuples(index=False)}
+
+    def lookup(k):
+        r = by_id.get(k[3])
+        return pair_item(r) if r is not None else None
+
+    dec = [(("pair", "", by_id[r.pair_id].make if r.pair_id in by_id else "", r.pair_id),
+            r.decision, r.fingerprint) for r in decisions.itertuples(index=False)]
+    return _resolve(items, dec, lookup)
+
+
+def queue(con: duckdb.DuckDBPyConnection, ref_dir: Path = REF_DIR) -> pd.DataFrame:
+    """Every review item with its status, in review order (families first)."""
+    rows = _family_items(con, ref_dir) + _vocabulary_items(con, ref_dir) + _pair_items(con, ref_dir)
+    q = pd.DataFrame(rows, columns=QUEUE_COLUMNS)
+    q["side"] = q.side.fillna("")
+    return q.sort_values(["order", "make", "key"], kind="stable").reset_index(drop=True)

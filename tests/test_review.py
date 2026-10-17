@@ -136,3 +136,108 @@ def test_outstanding_drops_items_decided_since_the_queue_was_written(ref):
     rv.record(PAIR_ITEM, "same", ref_dir=ref)
     out = rv.outstanding(q, ref)
     assert out[["kind", "key"]].values.tolist() == [["pair", "20V002000-2"], ["family", "FIT"]]
+
+
+# ---------- queue ----------
+
+import duckdb  # noqa: E402
+
+from src import matcher as mt  # noqa: E402
+
+
+def _db(tmp_path: Path) -> Path:
+    """HONDA only. Pairs: 20V001000-1 same, 20V001000-2 different, 20V002000-2 needs_review.
+    Families: FIT llm->CITY, PILOT llm->none, CITY rule. SIAM row 3 has zero families."""
+    db = tmp_path / "r.duckdb"
+    if db.exists():                       # built once per test; later calls reuse it
+        return db
+    con = duckdb.connect(str(db))
+    con.execute("""CREATE TABLE india_relevant_campaigns AS SELECT * FROM (VALUES
+        ('20V001000', 'HONDA', ['AIR BAGS'], 'Driver air bag inflator may rupture.', 'Injury.'),
+        ('20V002000', 'HONDA', ['SEATS'], 'Seat may detach from the floor.', 'Injury.'))
+        AS t(CAMPNO, make, components, DESC_DEFECT, CONEQUENCE_DEFECT)""")
+    con.execute("""CREATE TABLE siam_recalls AS SELECT * FROM (VALUES
+        (1, 'HONDA', 'City', 'Driver airbag inflator may rupture.'),
+        (2, 'HONDA', 'Amaze', 'Seat rail may detach.'),
+        (3, 'HONDA', 'Mystery Van', 'Brake hose may leak.'))
+        AS t(csv_row, make, model, defect_description)""")
+    con.execute("""CREATE TABLE siam_row_family AS SELECT * FROM (VALUES
+        (1, 'HONDA', 'CITY', 'rule'), (2, 'HONDA', 'AMAZE', 'rule'))
+        AS t(csv_row, make, family, method)""")
+    con.execute("""CREATE TABLE nhtsa_model_family AS SELECT * FROM (VALUES
+        ('HONDA', 'CITY', 'CITY', 'rule'), ('HONDA', 'FIT', 'CITY', 'llm'),
+        ('HONDA', 'PILOT', NULL, 'llm')) AS t(make, MODELTXT, family, method)""")
+    con.execute("CREATE TABLE nhtsa_focus AS SELECT make, MODELTXT FROM nhtsa_model_family")
+    keys = pd.DataFrame({"CAMPNO": ["20V001000", "20V001000", "20V002000"], "csv_row": [1, 2, 2]})
+    p = mt.load_pairs(con, keys)
+    labels = {"20V001000-1": "same", "20V001000-2": "different", "20V002000-2": "needs_review"}
+    m = p[["pair_id", "CAMPNO", "make", "csv_row", "fingerprint"]].assign(
+        label=p.pair_id.map(labels), llm_label=p.pair_id.map(labels).replace("needs_review", "same"),
+        confidence=0.9, us_evidence="us quote", india_evidence="india quote",
+        review_reason=p.pair_id.map({"20V002000-2": "india_evidence not found"}),
+        llm_model="fake", prompt_version=mt.PROMPT_VERSION, scope="all")
+    con.register("m", m)
+    con.execute("CREATE TABLE matches AS SELECT * FROM m")
+    con.close()
+    return db
+
+
+def _queue(tmp_path, ref):
+    con = duckdb.connect(str(_db(tmp_path)), read_only=True)
+    try:
+        return rv.queue(con, ref)
+    finally:
+        con.close()
+
+
+def test_queue_lists_every_kind_in_order(tmp_path, ref):
+    q = _queue(tmp_path, ref)
+    assert list(q.columns) == rv.QUEUE_COLUMNS
+    assert q[["order", "kind", "side", "key", "status"]].values.tolist() == [
+        [1, "family", "nhtsa", "FIT", "open"],
+        [2, "family", "siam", "3", "open"],
+        [3, "vocabulary", "", "CITY HYBRID", "open"],
+        [4, "pair", "", "20V002000-2", "open"],
+        [5, "pair", "", "20V001000-1", "open"],
+        [6, "family", "nhtsa", "PILOT", "open"]]
+    assert q.item_id.is_unique
+    pair = q[q.key == "20V001000-1"].iloc[0]
+    assert pair.us_text.startswith("Component: AIR BAGS") and pair.llm_answer == "same"
+    assert q[q.key == "FIT"].iloc[0].llm_answer == "CITY"
+
+
+def test_current_decisions_show_as_reviewed(tmp_path, ref):
+    q = _queue(tmp_path, ref)
+    for item in q.to_dict("records")[:5]:
+        decision = {"family": "none", "vocabulary": "distinct", "pair": "same"}[item["kind"]]
+        rv.record(item, decision, ref_dir=ref)
+    q2 = _queue(tmp_path, ref)
+    assert q2.status.tolist()[:5] == ["reviewed"] * 5
+    assert q2.previous_decision.tolist()[:5] == ["none", "none", "distinct", "same", "same"]
+
+
+def test_changed_text_makes_a_decision_stale(tmp_path, ref):
+    q = _queue(tmp_path, ref)
+    item = q[q.key == "20V001000-1"].iloc[0].to_dict()
+    rv.record({**item, "fingerprint": "0" * 16}, "different", ref_dir=ref)
+    row = _queue(tmp_path, ref).set_index("key").loc["20V001000-1"]
+    assert (row.status, row.previous_decision) == ("stale", "different")
+
+
+def test_decision_for_a_vanished_item_is_orphaned(tmp_path, ref):
+    rv.record({**PAIR_ITEM, "key": "99V999000-9"}, "same", ref_dir=ref)
+    rv.record({**FAMILY_ITEM, "key": "GONE MODEL"}, "CITY", ref_dir=ref)
+    q = _queue(tmp_path, ref)
+    orphans = q[q.status == "orphaned"]
+    assert set(orphans.key) == {"99V999000-9", "GONE MODEL"} and set(orphans.order) == {7}
+
+
+def test_queue_without_matcher_fingerprints_says_what_to_run(tmp_path, ref):
+    db = _db(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("ALTER TABLE matches DROP COLUMN fingerprint")
+    con.close()
+    con = duckdb.connect(str(db), read_only=True)
+    with pytest.raises(ValueError, match="src.matcher --all"):
+        rv.queue(con, ref)
+    con.close()
