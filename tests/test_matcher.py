@@ -175,6 +175,12 @@ def test_build_writes_matches_table(tmp_path: Path):
         "SELECT label, scope, india_evidence_found FROM matches").fetchone()
     assert (label, scope, found) == ("same", "ground_truth", True)
     assert out["comparison"]["agree"] == 1
+    cols = [c[0] for c in con.execute("DESCRIBE matches").fetchall()]
+    assert {"fingerprint", "prompt_version"} <= set(cols)
+    con.close()
+    # a rerun reuses the stored verdict: the LLM is not asked again
+    again = mt.build(db_path=db, gt_csv=gt, ask=lambda p, **kw: pytest.fail("must not ask"))
+    assert (again["reused"], again["sent"]) == (1, 0)
 
 
 def test_build_rejects_unknown_scope(tmp_path: Path):
@@ -187,8 +193,68 @@ def test_main_runs_ground_truth_scope_by_default(monkeypatch, capsys):
 
     def fake_build(scope):
         seen["scope"] = scope
-        return {"matches": pd.DataFrame({"label": ["same"]}), "comparison": None}
+        return {"matches": pd.DataFrame({"label": ["same"]}), "comparison": None,
+                "reused": 0, "sent": 1}
 
     monkeypatch.setattr(mt, "build", fake_build)
     mt.main([])
-    assert seen["scope"] == "ground_truth" and "same=1" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert seen["scope"] == "ground_truth" and "same=1" in out
+    assert "pairs sent to the LLM: 1" in out
+
+
+# ---------- fingerprints and reuse ----------
+
+from src.fingerprint import fingerprint  # noqa: E402
+
+
+def test_prompt_rules_are_unchanged_text():
+    # the rules moved into a constant; the prompt must stay byte-identical so the LLM cache hits
+    assert mt.build_prompt([PAIR]).startswith(mt.PROMPT_RULES + "\n")
+    assert mt.PROMPT_VERSION == fingerprint(mt.SYSTEM, mt.PROMPT_RULES)
+
+
+def test_check_result_carries_the_pair_fingerprint():
+    out = mt.check_result(_result(), {**PAIR, "fingerprint": "abc"})
+    assert out["fingerprint"] == "abc"
+
+
+def _fp_pairs(n):
+    p = _pairs(n)
+    p["fingerprint"] = [fingerprint(u, i) for u, i in zip(p.us_text, p.india_text)]
+    return p
+
+
+def _echo_fake(calls):
+    def fake(prompt, **kw):
+        ids = [line.split()[2] for line in prompt.splitlines() if line.startswith("=== PAIR")]
+        calls.append(ids)
+        return {"results": [_result(pair_id=i) for i in ids]}
+    return fake
+
+
+def test_unchanged_pairs_are_reused_without_a_call():
+    first = mt.judge(_fp_pairs(3), ask=_echo_fake([]))
+    calls = []
+    again = mt.judge(_fp_pairs(3), ask=_echo_fake(calls), previous=first)
+    assert calls == [] and again.attrs == {"reused": 3, "sent": 0}
+    assert again.label.tolist() == first.label.tolist()
+
+
+def test_changed_text_or_prompt_version_is_sent_again():
+    first = mt.judge(_fp_pairs(3), ask=_echo_fake([]))
+    changed = _fp_pairs(3)
+    changed.loc[0, "fingerprint"] = "different"
+    calls = []
+    mt.judge(changed, ask=_echo_fake(calls), previous=first)
+    assert calls == [["C0-0"]]
+    calls = []
+    mt.judge(_fp_pairs(3), ask=_echo_fake(calls), previous=first.assign(prompt_version="old"))
+    assert calls == [["C0-0", "C1-1", "C2-2"]]
+
+
+def test_previous_without_fingerprints_reuses_nothing():
+    calls = []
+    out = mt.judge(_fp_pairs(2), ask=_echo_fake(calls),
+                   previous=pd.DataFrame({"pair_id": ["C0-0"], "label": ["same"]}))
+    assert len(calls) == 1 and out.attrs == {"reused": 0, "sent": 2}

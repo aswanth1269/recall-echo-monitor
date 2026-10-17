@@ -15,6 +15,11 @@ least 3 words long. Any failure - missing quote, too-short quote, bad label,
 bad confidence, no answer for the pair - sets label = "needs_review" with a
 review_reason. Pairs with no defect text on a side are not sent at all.
 
+Each row stores a fingerprint of both texts and the prompt version. On a
+rerun, a pair whose fingerprint, prompt version and model are unchanged keeps
+its earlier verdict and is not sent again; only new or changed pairs cost LLM
+calls.
+
 Writes table `matches`. Default scope is the pairs in
 data/reference/ground_truth.csv; --all judges every candidate pair.
 
@@ -34,6 +39,7 @@ import numpy as np
 import pandas as pd
 
 from src import llm
+from src.fingerprint import fingerprint
 from src.llm import batched, complete_json
 from src.load_nhtsa import DB_PATH
 
@@ -112,42 +118,48 @@ def load_pairs(con: duckdb.DuckDBPyConnection, keys: pd.DataFrame) -> pd.DataFra
         con.unregister("pair_keys")
     if len(df) < len(keys):
         log.warning("%d requested pairs not found in the database", len(keys) - len(df))
+    us = [us_text(r) for r in df.itertuples(index=False)]
+    india = [india_text(r) for r in df.itertuples(index=False)]
     return pd.DataFrame({
         "pair_id": [f"{c}-{r}" for c, r in zip(df.CAMPNO, df.csv_row)],
         "CAMPNO": df.CAMPNO, "make": df.make, "csv_row": df.csv_row,
-        "us_text": [us_text(r) for r in df.itertuples(index=False)],
-        "india_text": [india_text(r) for r in df.itertuples(index=False)],
+        "us_text": us, "india_text": india,
+        "fingerprint": [fingerprint(u, i) for u, i in zip(us, india)],
         "us_has_defect": [bool(_clean(d)) for d in df.DESC_DEFECT],
         "india_has_defect": [bool(_clean(d)) for d in df.defect_description],
     })
 
 
+PROMPT_RULES = (
+    "For each pair decide whether the US recall and the INDIA recall describe the "
+    "SAME defect on the SAME model family. A different model-year range is fine. A "
+    "different component, a different failure, or a different model family means "
+    "\"different\".\n"
+    "The SAME defect needs the same failing component in the same position: a driver "
+    "airbag inflator and a passenger airbag inflator are DIFFERENT components even if "
+    "both may rupture; front and rear seat belts are different too. A shared symptom "
+    "alone (for example 'may catch fire') is not enough.\n\n"
+    "Return ONLY JSON: {\"results\": [{\"pair_id\": \"...\", \"label\": \"same\" or "
+    "\"different\", \"confidence\": number from 0 to 1, \"us_evidence\": \"...\", "
+    "\"india_evidence\": \"...\"}]} with exactly one result per pair.\n"
+    "us_evidence: an exact phrase of about 5 to 25 words copied character for character "
+    "from that pair's US text, stating the US defect. india_evidence: the same from that "
+    "pair's INDIA text. Copy - do not paraphrase, shorten inside the phrase, or fix "
+    "spelling. Give evidence for \"different\" pairs too.\n"
+    "us_evidence must come from the lines under that pair's \"US:\" heading and "
+    "india_evidence from the lines under its \"INDIA:\" heading. The two sides usually "
+    "word the same defect differently, so never reuse one side's phrase as the other "
+    "side's evidence - before answering, check each quote occurs in its own block.\n"
+)
+# Changes whenever the instructions change, so old verdicts are not reused.
+PROMPT_VERSION = fingerprint(SYSTEM, PROMPT_RULES)
+
+
 def build_prompt(batch: list[dict]) -> str:
     """One call's prompt: the rules, then up to BATCH pairs with both texts."""
-    head = (
-        "For each pair decide whether the US recall and the INDIA recall describe the "
-        "SAME defect on the SAME model family. A different model-year range is fine. A "
-        "different component, a different failure, or a different model family means "
-        "\"different\".\n"
-        "The SAME defect needs the same failing component in the same position: a driver "
-        "airbag inflator and a passenger airbag inflator are DIFFERENT components even if "
-        "both may rupture; front and rear seat belts are different too. A shared symptom "
-        "alone (for example 'may catch fire') is not enough.\n\n"
-        "Return ONLY JSON: {\"results\": [{\"pair_id\": \"...\", \"label\": \"same\" or "
-        "\"different\", \"confidence\": number from 0 to 1, \"us_evidence\": \"...\", "
-        "\"india_evidence\": \"...\"}]} with exactly one result per pair.\n"
-        "us_evidence: an exact phrase of about 5 to 25 words copied character for character "
-        "from that pair's US text, stating the US defect. india_evidence: the same from that "
-        "pair's INDIA text. Copy - do not paraphrase, shorten inside the phrase, or fix "
-        "spelling. Give evidence for \"different\" pairs too.\n"
-        "us_evidence must come from the lines under that pair's \"US:\" heading and "
-        "india_evidence from the lines under its \"INDIA:\" heading. The two sides usually "
-        "word the same defect differently, so never reuse one side's phrase as the other "
-        "side's evidence - before answering, check each quote occurs in its own block.\n"
-    )
     blocks = [f"=== PAIR {p['pair_id']} (make {p['make']}) ===\nUS:\n{p['us_text']}\n"
               f"INDIA:\n{p['india_text']}" for p in batch]
-    return head + "\n" + "\n\n".join(blocks)
+    return PROMPT_RULES + "\n" + "\n\n".join(blocks)
 
 
 def normalise(text: object) -> str:
@@ -164,7 +176,7 @@ def evidence_found(phrase: object, source: object) -> bool:
 def check_result(result: dict | None, pair: dict) -> dict:
     """Validate one LLM result against its pair; anything unsupported -> needs_review."""
     out = {"pair_id": pair["pair_id"], "CAMPNO": pair["CAMPNO"], "make": pair["make"],
-           "csv_row": pair["csv_row"], "llm_label": None, "confidence": None,
+           "csv_row": pair["csv_row"], "fingerprint": pair.get("fingerprint"), "llm_label": None, "confidence": None,
            "us_evidence": None, "india_evidence": None,
            "us_evidence_found": False, "india_evidence_found": False}
     reasons = []
@@ -210,11 +222,26 @@ def _results_by_id(answer: object) -> dict[str, dict]:
     return by_id
 
 
+def _reusable(previous: pd.DataFrame | None) -> dict[str, dict]:
+    """pair_id -> earlier verdict judged with this prompt and model."""
+    need = {"pair_id", "fingerprint", "prompt_version", "llm_model"}
+    if previous is None or not need <= set(previous.columns):
+        return {}
+    ok = previous[(previous.prompt_version == PROMPT_VERSION)
+                  & (previous.llm_model == llm.MODEL)]
+    return {r["pair_id"]: r for r in ok.to_dict("records")
+            if isinstance(r.get("fingerprint"), str) and r["fingerprint"]}
+
+
 def judge(pairs: pd.DataFrame, ask: Callable[..., object] = complete_json,
-          batch_size: int = BATCH) -> pd.DataFrame:
-    """Ask the LLM in batches, then check every answer in Python."""
-    rows = []
-    sendable = []
+          batch_size: int = BATCH, previous: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Ask the LLM in batches, then check every answer in Python.
+
+    A pair whose texts (fingerprint), prompt and model match a row in
+    `previous` keeps that verdict and is not sent again.
+    """
+    reuse = _reusable(previous)
+    rows, sendable, reused = [], [], 0
     for p in pairs.to_dict("records"):
         reason = None
         if not (p["us_has_defect"] and p["india_has_defect"]):
@@ -231,6 +258,12 @@ def judge(pairs: pd.DataFrame, ask: Callable[..., object] = complete_json,
             row = check_result(None, p)
             row["review_reason"] = reason
             rows.append(row)
+            continue
+        old = reuse.get(p["pair_id"])
+        if old is not None and old["fingerprint"] == p.get("fingerprint"):
+            rows.append({k: v for k, v in old.items()
+                         if k not in ("scope", "llm_model", "prompt_version")})
+            reused += 1
         else:
             sendable.append(p)
     for batch in batched(sendable, batch_size):
@@ -242,7 +275,11 @@ def judge(pairs: pd.DataFrame, ask: Callable[..., object] = complete_json,
         rows += [check_result(by_id.get(p["pair_id"]), p) for p in batch]
     out = pd.DataFrame(rows)
     out["llm_model"] = llm.MODEL
-    return out.sort_values(["CAMPNO", "csv_row"]).reset_index(drop=True)
+    out["prompt_version"] = PROMPT_VERSION
+    out = out.sort_values(["CAMPNO", "csv_row"]).reset_index(drop=True)
+    out.attrs = {"reused": reused, "sent": len(sendable)}
+    log.info("matcher: %d verdicts reused, %d pairs sent to the LLM", reused, len(sendable))
+    return out
 
 
 def _rate(part: int, n: int) -> str:
@@ -298,14 +335,19 @@ def build(db_path: Path = DB_PATH, gt_csv: Path = GROUND_TRUTH_CSV,
             keys = con.execute("SELECT CAMPNO, csv_row FROM candidate_pairs").df()
         else:
             raise ValueError(f"unknown scope {scope!r}")
-        matches = judge(load_pairs(con, keys), ask).assign(scope=scope)
+        tables = {r[0] for r in con.execute(
+            "SELECT table_name FROM information_schema.tables").fetchall()}
+        previous = con.execute("SELECT * FROM matches").df() if "matches" in tables else None
+        judged = judge(load_pairs(con, keys), ask, previous=previous)
+        matches = judged.assign(scope=scope)
         con.register("matches_df", matches)
         con.execute("CREATE OR REPLACE TABLE matches AS SELECT * FROM matches_df")
         con.unregister("matches_df")
     finally:
         con.close()
     comparison = compare_ground_truth(matches, gt) if gt is not None else None
-    return {"matches": matches, "comparison": comparison}
+    return {"matches": matches, "comparison": comparison,
+            "reused": judged.attrs["reused"], "sent": judged.attrs["sent"]}
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -313,6 +355,7 @@ def main(argv: list[str] | None = None) -> None:
     args = sys.argv[1:] if argv is None else argv
     out = build(scope="all" if "--all" in args else "ground_truth")
     print(report(out["matches"], out["comparison"]))
+    print(f"verdicts reused: {out['reused']}, pairs sent to the LLM: {out['sent']}")
 
 
 if __name__ == "__main__":
