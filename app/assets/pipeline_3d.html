@@ -161,7 +161,7 @@
     { id: "cand", name: "Candidate pairs", pos: [2.6, 0, 1.0], color: COLORS.neutral,
       count: function () { return fmt(DATA.pairs) + " pairs"; } },
     { id: "llm", name: "LLM matcher + evidence check", pos: [6.8, 0, -0.8], color: COLORS.match,
-      count: function () { return fmt(DATA.matched) + " echoes found"; } },
+      count: function () { return fmt(DATA.matched) + " echoes confirmed"; } },
     { id: "kpi", name: "KPIs & dashboard", pos: [10.8, 0, 0.6], color: COLORS.match,
       count: function () { return "echo rate " + fmt(DATA.echo_rate); } }
   ];
@@ -183,7 +183,7 @@
       stat: function () { return fmt(DATA.pairs) + " candidate pairs to check"; } },
     { focus: ["llm"], title: "The LLM judges, code verifies",
       text: "An LLM labels each pair same or different and quotes its evidence from both texts. Python checks every quote really exists, or the pair goes to review.",
-      stat: function () { return fmt(DATA.matched) + " US campaigns where the LLM found an India echo, quotes checked by code" + (DATA.f1 != null ? " <em>· F1 on 30 tuned test pairs</em> " + Number(DATA.f1).toFixed(2) : ""); } },
+      stat: function () { return fmt(DATA.matched) + " US campaigns where a person confirmed the LLM's India echo" + (DATA.f1 != null ? " <em>· F1 on 30 tuned test pairs</em> " + Number(DATA.f1).toFixed(2) : ""); } },
     { focus: ["kpi"], title: "Measure the echo",
       text: "Echo rate, the lag in days, the gaps by component, and the over-the-air share. Every rate shows its n. A missing India recall is a transparency signal, not proof of wrongdoing.",
       stat: function () { return "Echo rate " + fmt(DATA.echo_rate) + " <em>· median lag</em> " + (DATA.median_lag_days != null ? fmt(DATA.median_lag_days) + " days" : "—"); } }

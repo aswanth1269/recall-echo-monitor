@@ -1,6 +1,7 @@
--- echo_lag: days from US report_date to the earliest India recall_date among pairs labelled `same`, per echoing campaign; median, p25, p75 and how many had India first, by make, by segment and overall.
+-- echo_lag: days from US report_date to the earliest India recall_date among pairs a person confirmed as `same`, per echoing campaign; median, p25, p75 and how many had India first, by make, by segment and overall.
 --
--- Inputs: india_relevant_campaigns, matches, siam_recalls, make_segments.
+-- Inputs: india_relevant_campaigns, matches_reviewed, siam_recalls, make_segments.
+-- n counts confirmed echoes only, so it is already the reviewed count.
 -- lag_days = earliest matched recall_date - report_date (negative = India
 -- recalled first). n = echoing campaigns (campaign x make). Percentiles use
 -- linear interpolation (quantile_cont); they are not rates, so they are shown
@@ -10,7 +11,8 @@ WITH lag AS (
            CAST(min(r.recall_date) - c.report_date AS INTEGER) AS lag_days
     FROM india_relevant_campaigns AS c
     JOIN make_segments AS s USING (make)
-    JOIN matches AS m ON m.CAMPNO = c.CAMPNO AND m.make = c.make AND m.label = 'same'
+    JOIN matches_reviewed AS m
+      ON m.CAMPNO = c.CAMPNO AND m.make = c.make AND m.final_label = 'same'
     JOIN siam_recalls AS r ON r.csv_row = m.csv_row
     WHERE r.recall_date IS NOT NULL
     GROUP BY c.CAMPNO, c.make, s.segment, c.report_date

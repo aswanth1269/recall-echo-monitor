@@ -11,6 +11,7 @@ Make A (luxury), 12 campaigns A00-A11, reported 2020-01-01.
 Make B (mass_market), 5 campaigns B0-B4, reported 2021-01-01, 'ENGINE:OIL'.
   B0 same -> India 2021-01-31 (lag +30).
 OTA: A00-A05 true, A06-A09 false, A10 NULL, A11 absent; B0 true, B1-B4 false.
+matches_reviewed: every `same` pair confirmed by a person; the rest unreviewed.
 """
 
 from __future__ import annotations
@@ -63,6 +64,12 @@ def _fake(tmp_path: Path) -> tuple[Path, Path]:
     con.execute("""CREATE TABLE candidate_pairs AS
         SELECT CAMPNO, make, csv_row, CASE WHEN csv_row = 3 THEN 2 ELSE 1 END AS rank
         FROM matches""")
+    # every LLM `same` pair confirmed by a person; needs_review / different unreviewed
+    con.execute("""CREATE TABLE matches_reviewed AS SELECT *,
+        CASE WHEN label = 'same' THEN 'same' END                         AS human_decision,
+        CASE WHEN label = 'same' THEN 'reviewed' ELSE 'unreviewed' END   AS review_status,
+        CASE WHEN label = 'same' THEN 'same' END                         AS final_label
+        FROM matches""")
     con.close()
 
     makes = tmp_path / "india_makes.csv"
@@ -90,7 +97,8 @@ def _row(df: pd.DataFrame, **match) -> pd.Series:
 def test_echo_rate_by_make_segment_and_all(results):
     df = results["echo_rate"]
     a = _row(df, level="make", grp="A")
-    assert (a.n, a.echoing, a.echo_rate, a.needs_review_not_echoing) == (12, 3, 0.25, 1)
+    assert (a.n, a.echoing, a.echo_rate, a.n_reviewed, a.awaiting_review_not_echoing) == (
+        12, 3, 0.25, 11, 1)                                 # A03 awaits review
     b = _row(df, level="make", grp="B")
     assert (b.n, b.echoing) == (5, 1) and pd.isna(b.echo_rate)          # n < 10 suppressed
     assert _row(df, level="segment", grp="luxury").echo_rate == 0.25
@@ -158,7 +166,7 @@ def test_echo_explorer_one_row_per_campaign_with_best_pair(results, tmp_path):
     assert by.loc["A01", "label"] == "same"
     assert str(by.loc["A01", "india_recall_date"])[:10] == "2019-12-22"
     assert by.loc["A01", "lag_days"] == -10                     # same as echo_lag uses
-    assert by.loc["A03", "label"] == "needs_review" and pd.isna(by.loc["A03", "lag_days"])
+    assert by.loc["A03", "label"] == "awaiting_review" and pd.isna(by.loc["A03", "lag_days"])
     assert by.loc["A04", "label"] == "different"
     assert by.loc["A05", "label"] == "no_candidate"
     assert pd.isna(by.loc["A05", "india_recall_date"])          # never filled in
@@ -167,7 +175,7 @@ def test_echo_explorer_one_row_per_campaign_with_best_pair(results, tmp_path):
     assert list(out.columns) == ["CAMPNO", "make", "segment", "report_date", "component",
                                  "us_defect", "label", "india_recall_date", "india_model",
                                  "india_defect", "lag_days", "confidence", "us_evidence",
-                                 "india_evidence"]
+                                 "india_evidence", "review_status"]
 
 
 def test_explorer_echoes_agree_with_echo_rate(results):
@@ -237,3 +245,49 @@ def test_main_prints_every_table(monkeypatch, capsys):
     kpis.main()
     out = capsys.readouterr().out
     assert all(f"kpi_{n}.csv" in out for n in kpis.KPIS) and "echo_explorer.csv" in out
+
+
+# ---------- human review ----------
+
+def _unconfirm(db, campno):
+    con = duckdb.connect(str(db))
+    con.execute("UPDATE matches_reviewed SET review_status = 'unreviewed', final_label = NULL, "
+                "human_decision = NULL WHERE CAMPNO = ?", [campno])
+    con.close()
+
+
+def test_unconfirmed_llm_echo_does_not_count(tmp_path):
+    db, makes = _fake(tmp_path)
+    _unconfirm(db, "A02")
+    r = kpis.build(db_path=db, out_dir=tmp_path / "o", makes_csv=makes)
+    a = _row(r["echo_rate"], level="make", grp="A")
+    assert (a.echoing, a.n_reviewed, a.awaiting_review_not_echoing) == (2, 10, 2)
+    assert _row(r["echo_lag"], level="make", grp="A").n == 2
+    assert r["echo_by_component"].iloc[0].echoing == 2
+    assert r["echo_explorer"].set_index("CAMPNO").loc["A02", "label"] == "awaiting_review"
+
+
+def test_person_rejecting_an_llm_echo_shows_different(tmp_path):
+    db, makes = _fake(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("UPDATE matches_reviewed SET human_decision = 'different', "
+                "final_label = 'different' WHERE CAMPNO = 'A00'")
+    con.close()
+    r = kpis.build(db_path=db, out_dir=tmp_path / "o", makes_csv=makes)
+    assert _row(r["echo_rate"], level="make", grp="A").echoing == 2
+    assert r["echo_explorer"].set_index("CAMPNO").loc["A00", "label"] == "different"
+
+
+def test_check_inputs_requires_current_matches_reviewed(tmp_path):
+    db, makes = _fake(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("DELETE FROM matches_reviewed WHERE CAMPNO = 'B1'")
+    con.close()
+    with pytest.raises(ValueError, match="src.review"):
+        kpis.build(db_path=db, out_dir=tmp_path / "o", makes_csv=makes)
+
+
+def test_kpi_rows_carry_n_reviewed(results):
+    assert "n_reviewed" in results["echo_by_component"].columns
+    by = results["ota"][results["ota"].part == "echo_by_ota"]
+    assert by.n_reviewed.notna().all()

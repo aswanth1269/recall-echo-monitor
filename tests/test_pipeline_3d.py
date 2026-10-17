@@ -21,14 +21,15 @@ def test_counts_only_for_tables_that_exist(tmp_path):
     db = tmp_path / "t.duckdb"
     con = duckdb.connect(str(db))
     con.execute("CREATE TABLE nhtsa_campaigns AS SELECT * FROM range(5)")
-    con.execute("CREATE TABLE matches (CAMPNO VARCHAR, label VARCHAR)")
-    con.execute("INSERT INTO matches VALUES ('A','same'),('A','same'),('B','different'),('C','same')")
+    con.execute("CREATE TABLE matches_reviewed (CAMPNO VARCHAR, final_label VARCHAR)")
+    con.execute("INSERT INTO matches_reviewed VALUES ('A','same'),('A','same'),"
+                "('B','different'),('C','same'),('D',NULL)")
     con.execute("CREATE TABLE india_relevant_campaigns (CAMPNO VARCHAR, make VARCHAR)")
     con.execute("INSERT INTO india_relevant_campaigns VALUES ('X','AUDI'),('X','VOLKSWAGEN'),('Y','BMW')")
     con.close()
     counts = pipeline_3d.stage_counts(db)
     assert counts["us_campaigns"] == 5
-    assert counts["matched"] == 2          # distinct campaigns labelled same
+    assert counts["matched"] == 2          # distinct campaigns a person confirmed
     assert counts["relevant"] == 2         # a campaign under two makes counts once
     assert counts["pairs"] is None         # table missing -> None, not 0
 

@@ -9,8 +9,8 @@ KPIs (one SQL file each, a one-line comment at the top of each says what it is):
 Row-level export for the dashboard (data/clean/echo_explorer.csv):
   echo_explorer      one row per campaign x make with its best pair or no_candidate
 
-A campaign (campaign x make) "echoes" when it has at least one pair labelled
-`same` in matches. Every output row carries n; rates are NULL where n < 10.
+A campaign (campaign x make) "echoes" when a person confirmed at least one of
+its pairs as `same` (matches_reviewed.final_label; run src.review first). Every output row carries n; rates are NULL where n < 10.
 
 Before running, the inputs are checked: matches must come from the full run
 (scope 'all') and cover every candidate pair, and campaign_ota must exist -
@@ -53,7 +53,8 @@ def check_inputs(con: duckdb.DuckDBPyConnection) -> None:
     """Refuse to compute KPIs from a partial matcher run or without OTA flags."""
     tables = {r[0] for r in con.execute(
         "SELECT table_name FROM information_schema.tables").fetchall()}
-    for t in ("matches", "india_relevant_campaigns", "siam_recalls", "campaign_ota"):
+    for t in ("matches", "matches_reviewed", "india_relevant_campaigns", "siam_recalls",
+              "campaign_ota"):
         if t not in tables:
             raise ValueError(f"table {t} is missing - build it first")
     scopes = {r[0] for r in con.execute("SELECT DISTINCT scope FROM matches").fetchall()}
@@ -65,6 +66,11 @@ def check_inputs(con: duckdb.DuckDBPyConnection) -> None:
                               WHERE m.CAMPNO = p.CAMPNO AND m.csv_row = p.csv_row)""").fetchone()[0]
         if missing:
             raise ValueError(f"{missing} candidate pairs have no verdict in matches")
+    n_m, n_r = con.execute("SELECT (SELECT count(*) FROM matches), "
+                           "(SELECT count(*) FROM matches_reviewed)").fetchone()
+    if n_m != n_r:
+        raise ValueError(f"matches_reviewed has {n_r} rows but matches has {n_m}; "
+                         "run python -m src.review")
 
 
 def run_kpi(con: duckdb.DuckDBPyConnection, name: str) -> pd.DataFrame:

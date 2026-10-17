@@ -36,7 +36,7 @@ STAGE_QUERIES: dict[str, str] = {
     # distinct campaigns: 20 campaigns cover both Audi and VW and appear twice
     "relevant": "SELECT count(DISTINCT CAMPNO) FROM india_relevant_campaigns",
     "pairs": "SELECT count(*) FROM candidate_pairs",
-    "matched": "SELECT count(DISTINCT CAMPNO) FROM matches WHERE label = 'same'",
+    "matched": "SELECT count(DISTINCT CAMPNO) FROM matches_reviewed WHERE final_label = 'same'",
 }
 
 
