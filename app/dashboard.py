@@ -25,6 +25,10 @@ sys.path.insert(0, str(APP))
 import data_sources as ds  # noqa: E402
 import pipeline_3d  # noqa: E402
 
+if str(APP.parent) not in sys.path:          # repo root, for the review module
+    sys.path.insert(0, str(APP.parent))
+from src import model_family, review  # noqa: E402
+
 MIN_N = 10  # rates with fewer campaigns than this are shown as "too few to compare"
 
 # Dark chart palette (validated dark-mode steps of the reference palette).
@@ -106,6 +110,17 @@ def pct(v) -> str:
     return "—" if v is None or pd.isna(v) else f"{float(v) * 100:.1f}%"
 
 
+def highlight(text: object, phrase: object) -> str:
+    """Escape text and <mark> the evidence, found the way the matcher checks it."""
+    text = ds.text(text)
+    span = ds.find_evidence(text, phrase)
+    if span is None:
+        return html.escape(text)
+    i, j = span
+    return (html.escape(text[:i]) + "<mark>" + html.escape(text[i:j]) + "</mark>"
+            + html.escape(text[j:]))
+
+
 def style(fig: go.Figure, height: int = 320) -> go.Figure:
     fig.update_layout(
         height=height, margin=dict(l=8, r=16, t=8, b=8),
@@ -156,8 +171,8 @@ st.markdown(f"""
   <div class="asof">{html.escape(retrieved_dates())}</div>
 </div>""", unsafe_allow_html=True)
 
-tab_overview, tab_how, tab_explore, tab_method = st.tabs(
-    ["Overview", "How it works", "Recall explorer", "Method & limits"])
+tab_overview, tab_how, tab_explore, tab_review, tab_method = st.tabs(
+    ["Overview", "How it works", "Recall explorer", "Review", "Method & limits"])
 
 # ---------------------------------------------------------------- overview ---
 with tab_overview:
@@ -178,7 +193,9 @@ with tab_overview:
     e = llm.iloc[0] if not llm.empty else None
     st.markdown("<div class='tiles'>" + "".join([
         tile("Echo rate", pct(r["echo_rate"]) if r is not None else "—",
-             f"{int(r['echoing'])} of {int(r['n'])} US campaigns on India-sold models" if r is not None else "run src.kpis",
+             (f"{int(r['echoing'])} of {int(r['n'])} US campaigns on India-sold models, confirmed by a person"
+              + (f" · {int(r['n_reviewed'])} of {int(r['n'])} fully reviewed" if "n_reviewed" in r.index and pd.notna(r["n_reviewed"]) else ""))
+             if r is not None else "run src.kpis",
              r["echo_rate"] if r is not None else None, MATCH),
         tile("Median echo lag", f"{l['median_days']:.0f} days" if l is not None and pd.notna(l["median_days"]) else "—",
              f"middle half {l['p25_days']:.0f} to {l['p75_days']:.0f} days · n={int(l['n'])}" if l is not None and pd.notna(l["p25_days"]) else "run src.kpis",
@@ -272,10 +289,11 @@ with tab_explore:
     else:
         f1, f2, f3 = st.columns([2, 2, 3])
         makes = f1.multiselect("Carmaker", sorted(ex["make"].dropna().unique()))
-        labels = f2.multiselect("Result", ["same", "different", "needs_review", "no_candidate"],
-                                format_func={"same": "India echo found", "different": "No match",
-                                             "needs_review": "Needs review",
-                                             "no_candidate": "No India candidate"}.get)
+        nice = {"same": "India echo confirmed", "awaiting_review": "Awaiting review",
+                "different": "No match", "needs_review": "Needs review",
+                "no_candidate": "No India candidate"}
+        labels = f2.multiselect("Result", ["same", "awaiting_review", "different", "no_candidate"],
+                                format_func=nice.get)
         query = f3.text_input("Search component or defect", placeholder="e.g. airbag, software, brake")
         view = ex.copy()
         if makes:
@@ -290,8 +308,6 @@ with tab_explore:
         st.markdown(f"<span class='note'>{len(view):,} of {len(ex):,} US campaigns. "
                     "“No India candidate” is a transparency signal, not a finding of wrongdoing.</span>",
                     unsafe_allow_html=True)
-        nice = {"same": "India echo found", "different": "No match", "needs_review": "Needs review",
-                "no_candidate": "No India candidate"}
         table = view.assign(result=view["label"].map(nice).fillna(view["label"]))
         cols = ["CAMPNO", "make", "report_date", "component", "result", "india_recall_date", "lag_days", "confidence"]
         event = st.dataframe(
@@ -309,16 +325,6 @@ with tab_explore:
         if sel:
             row = view.iloc[sel[0]]
 
-            def highlight(text: object, phrase: object) -> str:
-                """Escape text and <mark> the evidence, found the way the matcher checks it."""
-                text = ds.text(text)
-                span = ds.find_evidence(text, phrase)
-                if span is None:
-                    return html.escape(text)
-                i, j = span
-                return (html.escape(text[:i]) + "<mark>" + html.escape(text[i:j]) + "</mark>"
-                        + html.escape(text[j:]))
-
             label = ds.text(row["label"])
             a, b = st.columns(2, gap="large")
             a.markdown(f"<div class='card'><div class='note'>US · {html.escape(ds.text(row['CAMPNO']))} · "
@@ -327,13 +333,158 @@ with tab_explore:
             b.markdown(f"<div class='card'><div class='note'>India · {html.escape(ds.text(row.get('india_model')) or DASH)} · "
                        f"{html.escape(ds.text(row.get('india_recall_date')) or DASH)}</div><h4 style='margin:.3rem 0'>{html.escape(nice.get(label, label))}</h4>"
                        f"<p>{highlight(row.get('india_defect'), row.get('india_evidence')) or DASH}</p></div>", unsafe_allow_html=True)
-            if label in ("same", "different"):
-                st.caption("Highlighted text is the evidence the LLM quoted; Python confirmed both "
-                           "quotes exist in the source text. The verdict itself is the LLM's and has "
-                           "not been reviewed by a person.")
+            if label == "same":
+                st.caption("A person confirmed this match. Highlighted text is the evidence the "
+                           "LLM quoted; Python confirmed both quotes exist in the source text.")
+            elif label == "different":
+                st.caption("No match: the LLM's verdict, or a person's where the pair was reviewed. "
+                           "Highlighted text is the evidence the LLM quoted.")
+            elif label == "awaiting_review":
+                st.caption("Awaiting review: the LLM proposed a match or its answer could not be "
+                           "checked. It does not count as an echo until a person confirms it.")
             elif label == "needs_review":
                 st.caption("Needs review: the LLM's answer could not be confirmed (a quote was missing "
                            "from its source, or there was no defect text to judge).")
+
+# ------------------------------------------------------------------ review ---
+KIND_NAMES = {"family": "Model family", "vocabulary": "Vocabulary", "pair": "Echo candidate"}
+
+
+def _progress(q: pd.DataFrame, kind: str) -> str:
+    part = q[(q["kind"] == kind) & q["order"].astype(int).isin(review.DEFAULT_ORDERS)]
+    return f"{int((part['status'] == 'reviewed').sum())} of {len(part)}"
+
+
+def _save(item: dict, decision: str, **kw) -> None:
+    """Button callback: record one decision through review.record (same rules as --import)."""
+    try:
+        changes = review.record(item, decision, st.session_state.get("review_note", ""),
+                                ref_dir=ds.ref_dir(), **kw)
+    except ValueError as exc:
+        st.session_state["review_error"] = str(exc)
+        return
+    st.session_state["review_last"] = changes
+    st.session_state["review_error"] = None
+    st.session_state["review_note"] = ""
+    if item["kind"] != "pair":
+        st.session_state["review_needs_rebuild"] = True
+
+
+with tab_review:
+    q = data("review_queue")
+    if q is None:
+        empty_state("review queue", "python -m src.review")
+    else:
+        st.markdown("<div class='tiles'>" + "".join([
+            tile("Families reviewed", _progress(q, "family"), "LLM mappings and rows with no family", None, INK_2),
+            tile("Vocabulary reviewed", _progress(q, "vocabulary"), "possible same-model spellings", None, INK_2),
+            tile("Echo candidates reviewed", _progress(q, "pair"), "every LLM same and needs_review pair", None, MATCH),
+            tile("Stale", str(int((q["status"] == "stale").sum())), "text changed since review", None, US),
+        ]) + "</div>", unsafe_allow_html=True)
+        r_evals = data("eval_summary")
+        prec = (r_evals[r_evals["matcher"].astype(str) == "llm_reviewed"]
+                if r_evals is not None else pd.DataFrame())
+        if not prec.empty and pd.notna(prec.iloc[0]["precision"]):
+            p = prec.iloc[0]
+            st.markdown(f"<span class='note'>Matcher precision from your review: {p['precision']:.0%} "
+                        f"(n={int(p['precision_n'])}).</span>", unsafe_allow_html=True)
+        if ds.decisions_newer_than_queue():
+            st.markdown("<div class='card note'>Decisions saved since the last run are not in the "
+                        "KPI tabs yet. Run <code>python -m src.review</code> and refresh.</div>",
+                        unsafe_allow_html=True)
+        if st.session_state.get("review_needs_rebuild"):
+            st.markdown("<div class='card note'>Family and vocabulary decisions change which "
+                        "candidate pairs exist. Run <code>python -m src.review --rebuild</code>.</div>",
+                        unsafe_allow_html=True)
+        if st.session_state.get("review_error"):
+            st.error(st.session_state["review_error"])
+
+        f1, f2, f3 = st.columns(3)
+        kinds = f1.multiselect("Kind", list(KIND_NAMES), format_func=KIND_NAMES.get)
+        makes = f2.multiselect("Carmaker ", sorted(q["make"].unique()))
+        extra = f3.checkbox("Also show LLM 'none' family answers")
+        todo = review.outstanding(q, ds.ref_dir())
+        orders = list(review.DEFAULT_ORDERS) + ([6] if extra else [])
+        todo = todo[todo["order"].astype(int).isin(orders)]
+        if kinds:
+            todo = todo[todo["kind"].isin(kinds)]
+        if makes:
+            todo = todo[todo["make"].isin(makes)]
+        todo = todo[~todo["item_id"].isin(st.session_state.get("review_skipped", set()))]
+        orphans = q[q["status"] == "orphaned"]
+        if len(orphans):
+            st.caption(f"{len(orphans)} saved decision(s) match nothing in the current data; "
+                       "they are kept but not applied.")
+
+        if todo.empty:
+            st.markdown("<div class='card note'>Nothing left to review with these filters.</div>",
+                        unsafe_allow_html=True)
+        else:
+            item = todo.iloc[0].to_dict()
+            st.markdown(f"<span class='note'>{len(todo):,} item(s) to review · "
+                        f"{html.escape(KIND_NAMES[item['kind']])} · {html.escape(item['make'])}"
+                        "</span>", unsafe_allow_html=True)
+            if item["status"] == "stale":
+                st.markdown("<div class='card note'>The text changed since you decided "
+                            f"<b>{html.escape(item['previous_decision'])}</b>. Please decide again."
+                            "</div>", unsafe_allow_html=True)
+
+            if item["kind"] == "pair":
+                a, b = st.columns(2, gap="large")
+                a.markdown(f"<div class='card'><div class='note'>US · {html.escape(item['key'])}</div>"
+                           f"<p>{highlight(item['us_text'], item.get('us_evidence'))}</p></div>",
+                           unsafe_allow_html=True)
+                b.markdown("<div class='card'><div class='note'>India</div>"
+                           f"<p>{highlight(item['india_text'], item.get('india_evidence'))}</p></div>",
+                           unsafe_allow_html=True)
+                st.caption(f"LLM said {item['llm_answer']}"
+                           + (f" (confidence {float(item['confidence']):.2f})" if item.get("confidence") else "")
+                           + (f" · {item['reason']}" if item.get("reason") else ""))
+                st.text_input("Note (optional)", key="review_note")
+                c1, c2, _ = st.columns([1, 1, 4])
+                c1.button("Same", key="review_same", on_click=_save, args=(item, "same"))
+                c2.button("Different", key="review_different", on_click=_save, args=(item, "different"))
+
+            elif item["kind"] == "family":
+                shown = item["us_text"] or item["india_text"]
+                st.markdown(f"<div class='card'><div class='note'>{html.escape(item['side'].upper())} "
+                            f"model text · {html.escape(item['key'])}</div><h4>{html.escape(shown)}</h4>"
+                            f"<p class='note'>{html.escape(item.get('reason') or '')}</p></div>",
+                            unsafe_allow_html=True)
+                vocab = model_family.load_vocab(ds.ref_dir() / "model_families.csv").get(item["make"], [])
+                options = vocab + ["none"]
+                llm_choice = item.get("llm_answer") or ""
+                st.selectbox("Family", options, key="review_family_choice",
+                             index=options.index(llm_choice) if llm_choice in options else len(options) - 1)
+                st.caption(f"LLM chose: {llm_choice or 'nothing (rule found no family)'}")
+                st.text_input("Note (optional)", key="review_note")
+                st.button("Confirm", key="review_confirm", on_click=lambda it=item: _save(
+                    it, st.session_state["review_family_choice"]))
+
+            else:  # vocabulary
+                st.markdown(f"<div class='card'><h4>{html.escape(item['key'])}</h4>"
+                            f"<p class='note'>{html.escape(item.get('reason') or '')}</p></div>",
+                            unsafe_allow_html=True)
+                st.text_input("Note (optional)", key="review_note")
+                c1, _ = st.columns([1, 5])
+                c1.button("Distinct models", key="review_distinct", on_click=_save,
+                          args=(item, "distinct"))
+                with st.expander("Same model: record an alias (needs a source)"):
+                    st.text_input("Other spelling", key="review_from_name")
+                    st.text_input("Source URL", key="review_source_url")
+                    st.text_input("Retrieved on (YYYY-MM-DD)", key="review_retrieved_on")
+                    st.button("Save alias", key="review_alias", on_click=lambda it=item: _save(
+                        it, "alias", from_name=st.session_state.get("review_from_name"),
+                        source_url=st.session_state.get("review_source_url"),
+                        retrieved_on=st.session_state.get("review_retrieved_on")))
+
+            s1, s2, _ = st.columns([1, 1, 4])
+            if s1.button("Skip", key="review_skip"):
+                st.session_state.setdefault("review_skipped", set()).add(item["item_id"])
+                st.rerun()
+            if st.session_state.get("review_last") and s2.button("Undo last", key="review_undo"):
+                review.undo(st.session_state.pop("review_last"), ds.ref_dir())
+                st.rerun()
 
 # ----------------------------------------------------------------- method ---
 with tab_method:
@@ -345,14 +496,15 @@ with tab_method:
 2. **Map models** on both sides to one family list: rules, then a batched LLM, then an optional overrides file a person maintains. LLM-mapped names are listed for review.
 3. **Find candidates**: same carmaker, shared family, India recall from 180 days before to 730 days after the US one, top 3 by TF-IDF similarity.
 4. **Match**: an LLM labels each pair and quotes evidence from both texts; Python checks each quote exists, or the pair goes to review.
-5. **Measure**: echo rate, lag, gaps by component and over-the-air share, each with its n.
+5. **Review**: a person confirms every LLM `same` pair and every flagged family or vocabulary item, in the Review tab or in `data/clean/review_queue.csv` with `python -m src.review --import`. Only confirmed echoes count.
+6. **Measure**: echo rate, lag, gaps by component and over-the-air share, each with its n.
 """)
         st.subheader("Limits")
         st.markdown("""
 - India model lists are today's line-ups, and some rows come from secondary sources.
 - SIAM lists voluntary recalls only, and Indian variants can differ from US ones.
 - Some carmakers have very few India recalls, so their rates are not compared.
-- Model-family mappings made by the LLM, and the matcher's same/different verdicts, have not yet been reviewed by a person.
+- Echo counts include only pairs a person has confirmed; until review is finished they are a lower bound. LLM `different` verdicts are not reviewed.
 - The over-the-air flag comes from the NHTSA API. It misses some remedies whose text says over-the-air, so OTA counts are a lower bound.
 - A missing India recall is a transparency signal, not proof of wrongdoing.
 """)

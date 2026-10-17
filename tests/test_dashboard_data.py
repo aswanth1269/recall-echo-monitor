@@ -146,8 +146,8 @@ def _run(project):
     return AppTest.from_file(str(APP / "dashboard.py"), default_timeout=120).run()
 
 
-def test_dashboard_renders_every_section_from_pipeline_files(project):
-    at = _run(project)
+def test_dashboard_renders_every_section_from_pipeline_files(review_project):
+    at = _run(review_project)          # every pipeline output present, review queue included
     assert not at.exception, [e.value for e in at.exception]
     text = " ".join(m.value for m in at.markdown)
     assert "yet. Run" not in text                       # no false "not run yet" states
@@ -175,3 +175,73 @@ def test_malformed_file_is_named_not_a_crash(project):
     at = _run(project)
     assert not at.exception
     assert any("kpi_echo_rate.csv is missing columns" in m.value for m in at.markdown)
+
+
+# ---------- review ----------
+
+QUEUE = ("item_id,order,kind,side,make,key,status,llm_answer,confidence,us_text,india_text,"
+         "us_evidence,india_evidence,reason,fingerprint,previous_decision,decision,note,"
+         "from_name,source_url,retrieved_on\n"
+         "family|nhtsa|BIGCO|FIT,1,family,nhtsa,BIGCO,FIT,open,CITY,,FIT,,,,an LLM chose this family,"
+         "aaaaaaaaaaaaaaaa,,,,,,\n"
+         "pair||BIGCO|20V001000-1,5,pair,,BIGCO,20V001000-1,open,same,0.9,"
+         "Defect: The driver air bag may rupture.,Defect: Driver airbag inflator may rupture.,"
+         "driver air bag may rupture,airbag inflator may rupture,,bbbbbbbbbbbbbbbb,,,,,,\n"
+         "pair||BIGCO|20V003000-3,5,pair,,BIGCO,20V003000-3,reviewed,same,0.8,a,b,,,,"
+         "cccccccccccccccc,same,,,,,\n")
+
+
+@pytest.fixture
+def review_project(project):
+    (project / "data/clean/review_queue.csv").write_text(QUEUE, encoding="utf-8")
+    ref = project / "data/reference"
+    ref.mkdir(parents=True, exist_ok=True)
+    (ref / "model_families.csv").write_text("make,family,source\nBIGCO,CITY,india_models\n",
+                                            encoding="utf-8")
+    return project
+
+
+def test_review_queue_reads_as_text(review_project):
+    q = ds.review_queue()
+    assert len(q) == 3 and q.key.tolist()[0] == "FIT" and q.fingerprint.iloc[0] == "a" * 16
+
+
+def test_decisions_newer_than_queue(review_project):
+    assert not ds.decisions_newer_than_queue()
+    time.sleep(0.05)
+    (review_project / "data/reference/pair_reviews.csv").write_text(
+        "pair_id,decision,note,fingerprint,reviewed_at\n", encoding="utf-8")
+    assert ds.decisions_newer_than_queue()
+
+
+def test_review_tab_shows_progress_and_first_item(review_project):
+    at = _run(review_project)
+    assert not at.exception, [e.value for e in at.exception]
+    text = " ".join(m.value for m in at.markdown)
+    assert "1 of 2" in text                      # echo candidates: one reviewed of two
+    assert "FIT" in text                         # families come first
+
+
+def test_review_tab_records_a_decision_through_review_record(review_project):
+    at = _run(review_project)
+    at.selectbox(key="review_family_choice").select("CITY").run()
+    at.button(key="review_confirm").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+    df = pd.read_csv(review_project / "data/reference/model_family_overrides.csv", dtype=str)
+    assert df[["side", "make", "key", "family"]].values.tolist() == [["nhtsa", "BIGCO", "FIT", "CITY"]]
+    text = " ".join(m.value for m in at.markdown)
+    assert "src.review --rebuild" in text        # family decisions need a rebuild
+    assert "20V001000-1" in text                 # moved on to the next item
+
+
+def test_review_tab_without_queue_says_what_to_run(project):
+    text = " ".join(m.value for m in _run(project).markdown)
+    assert "python -m src.review" in text
+
+
+def test_explorer_shows_awaiting_review(project):
+    path = project / "data/clean/echo_explorer.csv"
+    path.write_text(path.read_text(encoding="utf-8").replace(",same,", ",awaiting_review,"),
+                    encoding="utf-8")
+    at = _run(project)
+    assert not at.exception, [e.value for e in at.exception]

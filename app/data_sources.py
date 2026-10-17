@@ -8,6 +8,7 @@ The pipeline writes (src/kpis.py, src/evaluate.py):
                                         part echo_by_ota: grp (ota|not_ota|unknown), n, echoing, echo_rate
   data/clean/echo_explorer.csv          one row per campaign x make, best pair or no_candidate
   reports/eval_summary.csv              matcher, n, positives, tp, fp, fn, tn, precision, recall, f1, *_n
+  data/clean/review_queue.csv           review items (src/review.py); decisions go to data/reference
 
 Each function returns None when its file does not exist yet, and raises
 FormatError (naming the file and the missing columns) when it exists in an
@@ -36,7 +37,10 @@ FILES = {
     "ota": "data/clean/kpi_ota.csv",
     "explorer": "data/clean/echo_explorer.csv",
     "eval_summary": "reports/eval_summary.csv",
+    "review_queue": "data/clean/review_queue.csv",
 }
+DECISION_FILES = ("pair_reviews.csv", "model_family_overrides.csv",
+                  "vocabulary_reviews.csv", "model_aliases.csv")
 _PLAIN = {"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-"}
 _FLEX = {"'": "['‘’]", '"': '["“”]', "-": "[-–—]"}
 
@@ -54,10 +58,14 @@ def path(name: str) -> Path:
     return root() / FILES[name]
 
 
+def ref_dir() -> Path:
+    return root() / "data/reference"
+
+
 def stamp() -> tuple:
-    """(file, mtime) for every output: changes whenever the pipeline rewrites one."""
-    return tuple((name, path(name).stat().st_mtime if path(name).exists() else None)
-                 for name in FILES)
+    """(file, mtime) for every output and decision file: changes whenever one is rewritten."""
+    files = [path(n) for n in FILES] + [ref_dir() / f for f in DECISION_FILES]
+    return tuple((str(p), p.stat().st_mtime if p.exists() else None) for p in files)
 
 
 def _read(name: str, required: list[str]) -> pd.DataFrame | None:
@@ -130,6 +138,30 @@ def explorer() -> pd.DataFrame | None:
 def eval_summary() -> pd.DataFrame | None:
     return _read("eval_summary", ["matcher", "n", "positives", "tp", "fp", "fn", "tn",
                                   "precision", "recall", "f1", "f1_n"])
+
+
+def review_queue() -> pd.DataFrame | None:
+    """The review queue written by `python -m src.review`, every cell as text."""
+    p = path("review_queue")
+    if not p.exists():
+        return None
+    df = pd.read_csv(p, dtype=str, keep_default_na=False)
+    need = ["item_id", "order", "kind", "side", "make", "key", "status", "fingerprint"]
+    missing = [c for c in need if c not in df.columns]
+    if missing:
+        raise FormatError(f"{FILES['review_queue']} is missing columns {missing}; "
+                          "re-run python -m src.review")
+    return df
+
+
+def decisions_newer_than_queue() -> bool:
+    """True when a decision was saved after the queue (and matches_reviewed) were built."""
+    q = path("review_queue")
+    if not q.exists():
+        return False
+    built = q.stat().st_mtime
+    return any((ref_dir() / f).exists() and (ref_dir() / f).stat().st_mtime > built
+               for f in DECISION_FILES)
 
 
 def text(value: object) -> str:
