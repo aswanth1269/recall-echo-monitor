@@ -16,7 +16,9 @@ made during review are never overwritten.
    is stored as NULL with a note. method = 'llm', unconfirmed until checked
    in data/clean/model_family_review.csv.
 3. Overrides. data/reference/model_family_overrides.csv, if present, is
-   applied last. method = 'override'.
+   applied last. method = 'override'. Overrides written by src/review.py
+   carry a fingerprint of the reviewed text; if that text has changed, the
+   override is stale and is skipped with a warning.
 
 Cross-market names (Rogue vs X-Trail) can also be linked by rule through
 data/reference/model_aliases.csv, whose rows must carry a source.
@@ -42,6 +44,7 @@ import pandas as pd
 from rapidfuzz import fuzz
 
 from src.csv_safe import excel_safe
+from src.fingerprint import fingerprint
 from src.llm import batched, complete_json
 from src.load_nhtsa import DB_PATH, MAKETXT_ALIASES
 from src.load_siam import clean_text
@@ -59,6 +62,8 @@ SQL_DIR = ROOT / "sql"
 
 ALIAS_COLUMNS = ["make", "from_name", "family", "source_url", "retrieved_on", "note"]
 OVERRIDE_COLUMNS = ["side", "make", "key", "family", "note"]
+# Written by src/review.py; optional so hand-written override files still load.
+OVERRIDE_REVIEW_COLUMNS = ["fingerprint", "reviewed_at"]
 SPELLING_THRESHOLD = 85  # rapidfuzz ratio for flagging possible typos for review
 LLM_BATCH = 40
 NONE = "none"
@@ -410,10 +415,18 @@ def siam_families(siam: pd.DataFrame, vocab: dict[str, list[str]],
     return fam.reset_index(drop=True), zero.reset_index(drop=True)
 
 
+def override_fingerprint(side: str, make: str, key: str, text: object) -> str:
+    """Hash of what the reviewer saw: NHTSA model name, or the SIAM row's model text."""
+    return fingerprint(side, make, key, text)
+
+
 def load_overrides(path: Path = OVERRIDES_CSV) -> pd.DataFrame:
-    """Override rows (side, make, key, family, note), or an empty frame if no file."""
+    """Override rows (side, make, key, family, note, fingerprint, reviewed_at).
+
+    An absent file is an empty frame; files without the review columns get them blank.
+    """
     if not path.exists():
-        return pd.DataFrame(columns=OVERRIDE_COLUMNS)
+        return pd.DataFrame(columns=OVERRIDE_COLUMNS + OVERRIDE_REVIEW_COLUMNS)
     df = pd.read_csv(path, dtype=str, keep_default_na=False)
     missing = set(OVERRIDE_COLUMNS) - set(df.columns)
     if missing:
@@ -421,12 +434,22 @@ def load_overrides(path: Path = OVERRIDES_CSV) -> pd.DataFrame:
     bad = df[~df.side.isin(["nhtsa", "siam"])]
     if len(bad):
         raise ValueError(f"{path.name}: side must be 'nhtsa' or 'siam', got {bad.side.tolist()}")
-    return df
+    for col in OVERRIDE_REVIEW_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    return df[OVERRIDE_COLUMNS + OVERRIDE_REVIEW_COLUMNS]
 
 
 def apply_overrides(nhtsa: pd.DataFrame, siam: pd.DataFrame, overrides: pd.DataFrame,
-                    vocab: dict[str, list[str]]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Apply overrides last. Blank or 'none' family means 'no family'."""
+                    vocab: dict[str, list[str]],
+                    siam_models: dict[int, str] | None = None
+                    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Apply overrides last. Blank or 'none' family means 'no family'.
+
+    An override whose fingerprint no longer matches the current text (the
+    model name or SIAM row changed since review) is stale: logged, not applied.
+    SIAM fingerprints are only checked when siam_models (csv_row -> model) is given.
+    """
     def target(r) -> str | None:
         fam = r.family.strip()
         if fam == "" or fam.lower() == NONE:
@@ -435,15 +458,30 @@ def apply_overrides(nhtsa: pd.DataFrame, siam: pd.DataFrame, overrides: pd.DataF
             raise ValueError(f"override family {fam!r} for {r.make} is not in the vocabulary")
         return next(f for f in vocab[r.make] if f.upper() == fam.upper())
 
+    def stale(r, text) -> bool:
+        fp = str(getattr(r, "fingerprint", "") or "")
+        if fp and fp != override_fingerprint(r.side, r.make, r.key, text):
+            log.warning("stale override %s %s %r: text changed since review; not applied",
+                        r.side, r.make, r.key)
+            return True
+        return False
+
     nhtsa, siam = nhtsa.copy(), siam.copy()
     for r in overrides[overrides.side == "nhtsa"].itertuples(index=False):
-        hit = (nhtsa.make == r.make) & (nhtsa.MODELTXT == r.key)
+        if stale(r, r.key):
+            continue
+        hit =(nhtsa.make == r.make) & (nhtsa.MODELTXT == r.key)
         if not hit.any():
             log.warning("override for %s %r matches no NHTSA model", r.make, r.key)
             continue
         nhtsa.loc[hit, ["family", "method"]] = [target(r), "override"]
 
     siam_rows = overrides[overrides.side == "siam"]
+    if siam_models is not None:
+        keep = pd.Series([not stale(r, siam_models.get(int(r.key)))
+                          for r in siam_rows.itertuples(index=False)],
+                         index=siam_rows.index, dtype=bool)
+        siam_rows = siam_rows[keep]
     for key, group in siam_rows.groupby("key"):
         row = int(key)
         make = group.make.iloc[0]
@@ -501,7 +539,9 @@ def build(db_path: Path = DB_PATH, vocab_csv: Path = VOCAB_CSV,
                            llm_rows[["make", "MODELTXT", "family", "method"]]],
                           ignore_index=True)
         siam_fam, zero = siam_families(siam, vocab, codes, aliases)
-        nhtsa, siam_fam = apply_overrides(nhtsa, siam_fam, load_overrides(overrides_csv), vocab)
+        nhtsa, siam_fam = apply_overrides(
+            nhtsa, siam_fam, load_overrides(overrides_csv), vocab,
+            siam_models=dict(zip(siam.csv_row.astype(int), siam.model)))
 
         review_csv.parent.mkdir(parents=True, exist_ok=True)
         # for people only: neutralise cells a spreadsheet would run as a formula

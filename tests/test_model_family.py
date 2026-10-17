@@ -156,6 +156,36 @@ def test_override_outside_vocabulary_is_refused(tmp_path: Path):
                             {"NISSAN": ["X-TRAIL"]})
 
 
+def test_load_overrides_accepts_files_without_review_columns(tmp_path: Path):
+    path = tmp_path / "o.csv"
+    pd.DataFrame([["nhtsa", "NISSAN", "ROGUE", "X-Trail", ""]],
+                 columns=fam.OVERRIDE_COLUMNS).to_csv(path, index=False)
+    df = fam.load_overrides(path)
+    assert list(df.columns) == fam.OVERRIDE_COLUMNS + fam.OVERRIDE_REVIEW_COLUMNS
+    assert df.fingerprint.tolist() == [""]
+
+
+def test_stale_override_is_logged_and_not_applied(tmp_path: Path, caplog):
+    path = tmp_path / "o.csv"
+    good = fam.override_fingerprint("siam", "AUDI", "252", "A6 45 TFSI")
+    pd.DataFrame([["siam", "AUDI", "252", "A6", "", good, "2026-10-16"],
+                  ["siam", "AUDI", "253", "A6", "", "0000000000000000", "2026-10-16"],
+                  ["nhtsa", "NISSAN", "ROGUE", "X-Trail", "",
+                   fam.override_fingerprint("nhtsa", "NISSAN", "ROGUE", "ROGUE"), "2026-10-16"]],
+                 columns=fam.OVERRIDE_COLUMNS + fam.OVERRIDE_REVIEW_COLUMNS).to_csv(path, index=False)
+    nhtsa = pd.DataFrame({"make": ["NISSAN"], "MODELTXT": ["ROGUE"],
+                          "family": [None], "method": ["llm"]})
+    siam = pd.DataFrame({"csv_row": [253], "make": ["AUDI"], "family": ["A4"], "method": ["rule"]})
+    with caplog.at_level("WARNING"):
+        n, s = fam.apply_overrides(nhtsa, siam, fam.load_overrides(path),
+                                   {"NISSAN": ["X-TRAIL"], "AUDI": ["A4", "A6"]},
+                                   siam_models={252: "A6 45 TFSI", 253: "A4 changed text"})
+    assert n.family.tolist() == ["X-TRAIL"]
+    assert sorted(map(tuple, s.values.tolist())) == [(252, "AUDI", "A6", "override"),
+                                                     (253, "AUDI", "A4", "rule")]
+    assert "stale override" in caplog.text and "253" in caplog.text
+
+
 def test_load_overrides_missing_file_and_bad_side(tmp_path: Path):
     assert fam.load_overrides(tmp_path / "none.csv").empty
     bad = tmp_path / "bad.csv"
