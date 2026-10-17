@@ -17,6 +17,7 @@ Compares US recalls (NHTSA) with India recalls (SIAM) for carmakers that sell th
 - Run modules with `.venv/Scripts/python.exe -m src.<module>`
 - Tests: `.venv/Scripts/python.exe -m pytest -q`
 - Database: data/clean/recalls.duckdb
+- Human review: `.venv/Scripts/python.exe -m src.review` applies decisions and writes data/clean/review_queue.csv; `--import <sheet>` records a filled sheet; `--rebuild` reruns the pipeline after family decisions
 
 # Matching rules
 - Unit of comparison: one NHTSA campaign (CAMPNO) vs one SIAM row

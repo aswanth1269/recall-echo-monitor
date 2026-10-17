@@ -2,7 +2,7 @@
 
 Ground truth: `data/reference/ground_truth.csv` - 30 pairs, 5 labelled `same`, 25 `different`. Positive class: `same`.
 
-**Who labelled it:** Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified. Until a person confirms these labels, the numbers below measure agreement with those labels, not accuracy.
+**Who labelled it:** Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified; human_label filled for 0 of 30. Until a person confirms these labels, the numbers below measure agreement with those labels, not accuracy.
 
 ## Read this first
 
@@ -37,6 +37,10 @@ F1 is shown as 2·TP / (2·TP + FP + FN).
 |---|---:|---:|
 | **truth same** | 4 | 1 |
 | **truth different** | 0 | 25 |
+
+## Matcher precision (human-reviewed)
+
+No LLM `same` pairs have been reviewed yet (run `python -m src.review`).
 
 ## Disagreements
 

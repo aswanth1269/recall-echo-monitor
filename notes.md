@@ -102,3 +102,17 @@ expected rather than suspicious.
 - **The matcher is only checked on 30 pairs.** Those pairs were labelled by Claude, not by a person, and both the prompt and one label were adjusted after seeing those pairs (`reports/eval.md`). 30/30 agreement there is not an accuracy figure.
 - **LLM family mappings are unconfirmed.** 42 NHTSA model names were mapped to India families by the LLM (`data/clean/model_family_review.csv`); some look wrong (HR-V -> WR-V, SENTRA -> SUNNY).
 - **Echo is per make.** A campaign covering Audi and VW is counted once under each.
+
+## 2026-10-17 human review
+
+- **KPIs now count only echoes a person confirmed** (`matches_reviewed.final_label = 'same'`). Before any review the headline is 0 of 1,383 campaigns; it grows as pairs are confirmed.
+  - The earlier figure of 152 / 1,383 (11.0%) is the LLM's unconfirmed count. All 152 campaigns are in the review queue.
+- **Review queue: 338 items** (`data/clean/review_queue.csv`, also in the dashboard's Review tab):
+  - 42 LLM family mappings and 26 SIAM rows with no family.
+  - 17 vocabulary items. `LEXUS LS500H` was flagged twice, once against `LEXUS LS` and once against `LEXUS LS500`, and is one decision.
+  - 15 `needs_review` pairs and 238 LLM `same` pairs.
+  - The 359 LLM "none" family answers can be reviewed through a filter.
+- **`n_reviewed`** counts campaigns with nothing waiting for a person: 1,219 of 1,383 today. These have only LLM `different` pairs or no candidates, which are not queued, so this does not mean a person checked them.
+- **Matcher reruns are now free** when texts and the prompt are unchanged: 1,610 verdicts reused, 0 sent.
+- **Precision from review** appears in `reports/eval.md` once at least one LLM `same` pair is reviewed; the rate itself shows from n >= 10.
+
