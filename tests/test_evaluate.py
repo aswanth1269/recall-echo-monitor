@@ -195,3 +195,57 @@ def test_main_prints_summary(monkeypatch, capsys):
     ev.main()
     out = capsys.readouterr().out
     assert "flatters the baseline" in out and "TP=1" in out
+
+
+# ---------- human labels and reviewed precision ----------
+
+def test_human_label_overrides_claude_label(tmp_path):
+    gt = tmp_path / "gt.csv"
+    pd.DataFrame({"pair_id": ["A-1", "B-2"], "label": ["same", "different"],
+                  "human_label": ["different", ""], "reason": ["", ""]}).to_csv(gt, index=False)
+    df = ev.load_ground_truth(gt)
+    assert df.label.tolist() == ["different", "different"]
+    assert df.label_source.tolist() == ["human", "claude"]
+    assert not ev.human_verified(df)
+
+
+def test_ground_truth_without_human_label_column_still_loads(tmp_path):
+    gt = tmp_path / "gt.csv"
+    pd.DataFrame({"pair_id": ["A-1"], "label": ["same"]}).to_csv(gt, index=False)
+    assert ev.load_ground_truth(gt).label_source.tolist() == ["claude"]
+
+
+def test_bad_human_label_is_refused(tmp_path):
+    gt = tmp_path / "gt.csv"
+    pd.DataFrame({"pair_id": ["A-1"], "label": ["same"],
+                  "human_label": ["maybe"]}).to_csv(gt, index=False)
+    with pytest.raises(ValueError, match="human_label"):
+        ev.load_ground_truth(gt)
+
+
+def test_reviewed_precision_none_without_table(tmp_path):
+    con = duckdb.connect(str(tmp_path / "x.duckdb"))
+    assert ev.reviewed_precision(con) is None
+
+
+def test_report_and_summary_include_reviewed_precision(tmp_path, gt_file):
+    db = _db(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("""CREATE TABLE matches_reviewed AS
+        SELECT 'same' AS label, 'reviewed' AS review_status,
+               CASE WHEN i < 11 THEN 'same' ELSE 'different' END AS final_label
+        FROM range(12) AS t(i)""")
+    con.close()
+    out = tmp_path / "eval.md"
+    ev.build(db_path=db, gt_path=gt_file, out_md=out)
+    text = out.read_text(encoding="utf-8")
+    assert "## Matcher precision (human-reviewed)" in text and "11 of 12" in text
+    summary = pd.read_csv(tmp_path / "eval_summary.csv")
+    row = summary[summary.matcher == "llm_reviewed"].iloc[0]
+    assert (row.n, row.tp, row.fp, row.precision, row.precision_n) == (12, 11, 1, 0.9167, 12)
+
+
+def test_report_says_when_nothing_is_reviewed_yet(tmp_path, gt_file):
+    out = tmp_path / "eval.md"
+    ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out)
+    assert "No LLM `same` pairs have been reviewed yet" in out.read_text(encoding="utf-8")

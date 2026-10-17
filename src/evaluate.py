@@ -15,6 +15,10 @@ rate shows its n and the percentage is suppressed where n < 10 (the fraction
 is still shown). Every pair where either matcher disagrees with the ground
 truth is listed with both texts. Output: reports/eval.md.
 
+Also reports the matcher's precision from the human review of LLM `same`
+pairs (table matches_reviewed), and uses a filled `human_label` in
+ground_truth.csv in place of Claude's label.
+
 The ground-truth file is only ever read.
 
 Run:  .venv/Scripts/python.exe -m src.evaluate
@@ -39,13 +43,40 @@ MIN_N = 10
 
 
 def load_ground_truth(path: Path = GROUND_TRUTH_CSV) -> pd.DataFrame:
-    """Read the labels (read-only). Adds CAMPNO / csv_row parsed from pair_id."""
+    """Read the labels (read-only). A filled human_label wins over the original label.
+
+    Adds CAMPNO / csv_row parsed from pair_id and label_source ('human' | 'claude').
+    """
     gt = pd.read_csv(path, dtype=str, keep_default_na=False)
     bad = sorted(set(gt.label) - {"same", "different"})
     if bad:
         raise ValueError(f"ground truth has labels other than same/different: {bad}")
+    human = (gt["human_label"].str.strip() if "human_label" in gt
+             else pd.Series("", index=gt.index))
+    bad = sorted(set(human) - {"", "same", "different"})
+    if bad:
+        raise ValueError(f"ground truth human_label must be same, different or blank: {bad}")
+    gt = gt.assign(label=human.where(human != "", gt.label),
+                   label_source=["human" if h else "claude" for h in human])
     keys = gt.pair_id.str.rsplit("-", n=1, expand=True)
     return gt.assign(CAMPNO=keys[0], csv_row=keys[1].astype(int))
+
+
+def human_verified(gt: pd.DataFrame) -> bool:
+    """True only when a person labelled every ground-truth pair."""
+    return bool(len(gt)) and bool((gt.label_source == "human").all())
+
+
+def reviewed_precision(con: duckdb.DuckDBPyConnection) -> dict | None:
+    """Matcher precision from the human review of LLM `same` pairs, or None before review."""
+    tables = {r[0] for r in con.execute(
+        "SELECT table_name FROM information_schema.tables").fetchall()}
+    if "matches_reviewed" not in tables:
+        return None
+    from src.review import precision      # imported here: review imports matcher
+    row = precision(con).iloc[0]
+    return {"n_reviewed": int(row.n_reviewed), "n_confirmed": int(row.n_confirmed),
+            "precision": None if pd.isna(row.precision) else float(row.precision)}
 
 
 def file_digest(path: Path) -> str:
@@ -150,7 +181,7 @@ def _revision_lines(df: pd.DataFrame) -> list[str]:
 
 
 def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by: str,
-                    gt_path: Path) -> str:
+                    gt_path: Path, reviewed: dict | None = None) -> str:
     df = result["pairs"]
     n_pos = int(df.label.eq(POSITIVE).sum())
     try:
@@ -188,6 +219,16 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
                         ("baseline", f"TF-IDF baseline (score >= {result['threshold']:.4f})")):
         lines += [f"### Confusion matrix - {title}", "", *_cm_table(result[name]["confusion"]), ""]
 
+    lines += ["## Matcher precision (human-reviewed)", ""]
+    if reviewed is None or reviewed["n_reviewed"] == 0:
+        lines += ["No LLM `same` pairs have been reviewed yet (run `python -m src.review`).", ""]
+    else:
+        n, ok = reviewed["n_reviewed"], reviewed["n_confirmed"]
+        lines += [f"A person confirmed {ok} of {n} reviewed LLM `same` pairs: precision "
+                  f"{fmt_rate(ok / n, ok, n)}.",
+                  "This is precision only. It says nothing about echoes the matcher missed; "
+                  "recall comes from the ground-truth pairs above.", ""]
+
     dis = df[(df.llm_pred != df.label) | (df.base_pred != df.label)].sort_values("pair_id")
     lines += ["## Disagreements", "",
               f"{len(dis)} pair(s) where at least one matcher differs from the ground truth.", ""]
@@ -210,7 +251,7 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def summary_frame(result: dict[str, object]) -> pd.DataFrame:
+def summary_frame(result: dict[str, object], reviewed: dict | None = None) -> pd.DataFrame:
     """One row per matcher: counts, and each rate with its own n.
 
     A rate is left empty where its n < MIN_N (CLAUDE.md), so a reader of the
@@ -229,6 +270,14 @@ def summary_frame(result: dict[str, object]) -> pd.DataFrame:
                        if name == "llm" else
                        "threshold chosen on these same pairs (flatters the baseline)")
         rows.append(row)
+    if reviewed and reviewed["n_reviewed"]:
+        n, ok = reviewed["n_reviewed"], reviewed["n_confirmed"]
+        rows.append({"matcher": "llm_reviewed", "n": n, "positives": None, "tp": ok,
+                     "fp": n - ok, "fn": None, "tn": None,
+                     "precision": round(ok / n, 4) if n >= MIN_N else None, "precision_n": n,
+                     "recall": None, "recall_n": None, "f1": None, "f1_n": None,
+                     "threshold": None,
+                     "note": "precision from human review of LLM same pairs; not recall"})
     return pd.DataFrame(rows)
 
 
@@ -244,14 +293,20 @@ def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
         llm = llm_predictions(con, gt)
         base = baseline_scores(con, gt)
         texts = load_pairs(con, gt[["CAMPNO", "csv_row"]])
+        reviewed = reviewed_precision(con)
     finally:
         con.close()
     result = evaluate(gt.drop(columns=["CAMPNO", "csv_row"]).merge(
         texts[["pair_id", "make"]], on="pair_id"), llm, base)
     labelled_by = "; ".join(sorted(set(gt.get("labelled_by", pd.Series(["unknown"])))))
+    if human_verified(gt):
+        labelled_by = "a person (human_label, all pairs)"
+    else:
+        labelled_by += (f"; human_label filled for {int((gt.label_source == 'human').sum())} "
+                        f"of {len(gt)}")
     out_md.parent.mkdir(parents=True, exist_ok=True)
-    out_md.write_text(render_markdown(result, texts, labelled_by, gt_path), encoding="utf-8")
-    summary_frame(result).to_csv(out_md.parent / "eval_summary.csv", index=False,
+    out_md.write_text(render_markdown(result, texts, labelled_by, gt_path, reviewed), encoding="utf-8")
+    summary_frame(result, reviewed).to_csv(out_md.parent / "eval_summary.csv", index=False,
                                  encoding="utf-8")
     if file_digest(gt_path) != before:          # belt and braces: labels must be untouched
         raise RuntimeError("ground-truth file changed during evaluation")
