@@ -356,3 +356,16 @@ def test_main_import_then_apply(monkeypatch, capsys, tmp_path):
     rv.main(["--import", str(tmp_path / "q.csv")])
     out = capsys.readouterr().out
     assert seen == [tmp_path / "q.csv"] and "recorded 2" in out and "x: bad" in out
+
+
+def test_apply_with_no_decisions_keeps_text_columns(tmp_path, ref):
+    # an empty decisions frame must not make DuckDB type final_label as a number
+    db = _db(tmp_path)
+    assert rv.apply(db, ref) == {"reviewed": 0, "stale": 0, "unreviewed": 3, "orphaned": 0}
+    con = duckdb.connect(str(db), read_only=True)
+    types = dict(con.execute("SELECT column_name, data_type FROM information_schema.columns "
+                             "WHERE table_name = 'matches_reviewed'").fetchall())
+    assert {types[c] for c in ("human_decision", "review_status", "final_label")} == {"VARCHAR"}
+    assert con.execute("SELECT count(*) FROM matches_reviewed WHERE final_label = 'same'"
+                       ).fetchone()[0] == 0
+    con.close()

@@ -194,7 +194,7 @@ with tab_overview:
     st.markdown("<div class='tiles'>" + "".join([
         tile("Echo rate", pct(r["echo_rate"]) if r is not None else "—",
              (f"{int(r['echoing'])} of {int(r['n'])} US campaigns on India-sold models, confirmed by a person"
-              + (f" · {int(r['n_reviewed'])} of {int(r['n'])} fully reviewed" if "n_reviewed" in r.index and pd.notna(r["n_reviewed"]) else ""))
+              + (f" · {int(r['n_reviewed'])} of {int(r['n'])} with nothing awaiting review" if "n_reviewed" in r.index and pd.notna(r["n_reviewed"]) else ""))
              if r is not None else "run src.kpis",
              r["echo_rate"] if r is not None else None, MATCH),
         tile("Median echo lag", f"{l['median_days']:.0f} days" if l is not None and pd.notna(l["median_days"]) else "—",
