@@ -241,3 +241,63 @@ def test_queue_without_matcher_fingerprints_says_what_to_run(tmp_path, ref):
     with pytest.raises(ValueError, match="src.matcher --all"):
         rv.queue(con, ref)
     con.close()
+
+
+# ---------- apply / precision ----------
+
+def _fp(db, pair_id):
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        return con.execute("SELECT fingerprint FROM matches WHERE pair_id = ?",
+                           [pair_id]).fetchone()[0]
+    finally:
+        con.close()
+
+
+def test_apply_sets_final_label_only_for_current_decisions(tmp_path, ref):
+    db = _db(tmp_path)
+    rv.record({**PAIR_ITEM, "key": "20V001000-1", "fingerprint": _fp(db, "20V001000-1")},
+              "same", ref_dir=ref)
+    rv.record({**PAIR_ITEM, "key": "20V002000-2", "fingerprint": "0" * 16}, "same", ref_dir=ref)
+    rv.record({**PAIR_ITEM, "key": "99V999000-9"}, "different", ref_dir=ref)
+    counts = rv.apply(db, ref)
+    assert counts == {"reviewed": 1, "stale": 1, "unreviewed": 1, "orphaned": 1}
+    con = duckdb.connect(str(db), read_only=True)
+    rows = con.execute("""SELECT pair_id, label, human_decision, review_status, final_label
+                          FROM matches_reviewed ORDER BY pair_id""").fetchall()
+    assert rows == [("20V001000-1", "same", "same", "reviewed", "same"),
+                    ("20V001000-2", "different", None, "unreviewed", None),
+                    ("20V002000-2", "needs_review", "same", "stale", None)]
+    con.close()
+
+
+def test_apply_refuses_bad_decision_values(tmp_path, ref):
+    db = _db(tmp_path)
+    (ref / rv.FILES["pair"]).write_text(
+        "pair_id,decision,note,fingerprint,reviewed_at\n20V001000-1,yes,,x,2026-10-16\n",
+        encoding="utf-8")
+    with pytest.raises(ValueError, match="same/different"):
+        rv.apply(db, ref)
+
+
+def _reviewed_db(tmp_path, n_same, n_confirmed):
+    con = duckdb.connect(str(tmp_path / "p.duckdb"))
+    con.execute(f"""CREATE TABLE matches_reviewed AS
+        SELECT 'same' AS label, 'reviewed' AS review_status,
+               CASE WHEN i < {n_confirmed} THEN 'same' ELSE 'different' END AS final_label
+        FROM range({n_same}) AS t(i)""")
+    con.execute("INSERT INTO matches_reviewed VALUES ('same', 'unreviewed', NULL), "
+                "('different', 'reviewed', 'different')")
+    return con
+
+
+def test_precision_counts_reviewed_llm_same_pairs_only(tmp_path):
+    con = _reviewed_db(tmp_path, 12, 9)
+    row = rv.precision(con).iloc[0]
+    assert (row.n_reviewed, row.n_confirmed, row.precision) == (12, 9, 0.75)
+
+
+def test_precision_is_suppressed_below_ten(tmp_path):
+    con = _reviewed_db(tmp_path, 9, 9)
+    row = rv.precision(con).iloc[0]
+    assert row.n_reviewed == 9 and pd.isna(row.precision)

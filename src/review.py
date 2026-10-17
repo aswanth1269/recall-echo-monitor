@@ -37,10 +37,12 @@ import pandas as pd
 from src import model_family
 from src.csv_safe import excel_safe_value
 from src.fingerprint import fingerprint
+from src.load_nhtsa import DB_PATH
 from src.matcher import load_pairs
 
 ROOT = Path(__file__).resolve().parents[1]
 REF_DIR = ROOT / "data/reference"
+SQL_DIR = ROOT / "sql"
 VOCAB_FILE = "model_families.csv"
 
 FILES = {"pair": "pair_reviews.csv",
@@ -347,3 +349,45 @@ def queue(con: duckdb.DuckDBPyConnection, ref_dir: Path = REF_DIR) -> pd.DataFra
     q = pd.DataFrame(rows, columns=QUEUE_COLUMNS)
     q["side"] = q.side.fillna("")
     return q.sort_values(["order", "make", "key"], kind="stable").reset_index(drop=True)
+
+
+# ---------- applying decisions ----------
+
+def _sql(name: str) -> str:
+    return (SQL_DIR / f"{name}.sql").read_text(encoding="utf-8")
+
+
+def apply(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR) -> dict[str, int]:
+    """Write matches_reviewed from matches and pair_reviews.csv; return status counts."""
+    pairs = read_decisions("pair", ref_dir)
+    bad = sorted(set(pairs.decision) - set(PAIR_DECISIONS))
+    if bad:
+        raise ValueError(f"{FILES['pair']} has decisions other than same/different: {bad}")
+    con = duckdb.connect(str(db_path))
+    try:
+        cols = {r[0] for r in con.execute("DESCRIBE matches").fetchall()}
+        if "fingerprint" not in cols:
+            raise ValueError("matches has no fingerprint column; "
+                             "run python -m src.matcher --all")
+        con.register("pair_reviews_df", pairs)
+        con.execute(_sql("matches_reviewed"))
+        con.unregister("pair_reviews_df")
+        counts = dict(con.execute("SELECT review_status, count(*) FROM matches_reviewed "
+                                  "GROUP BY 1").fetchall())
+        known = {r[0] for r in con.execute("SELECT pair_id FROM matches").fetchall()}
+    finally:
+        con.close()
+    orphans = sorted(set(pairs.pair_id) - known)
+    if orphans:
+        log.warning("%d pair decisions match no pair in matches (kept, not applied): %s",
+                    len(orphans), ", ".join(orphans[:20]))
+    out = {s: int(counts.get(s, 0)) for s in ("reviewed", "stale", "unreviewed")}
+    out["orphaned"] = len(orphans)
+    if out["stale"]:
+        log.warning("%d pair decisions are stale (texts changed); re-queued", out["stale"])
+    return out
+
+
+def precision(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Matcher precision from human-reviewed LLM `same` pairs (NULL where n < 10)."""
+    return con.execute(_sql("review_precision")).df()
