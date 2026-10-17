@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -35,7 +36,7 @@ import duckdb
 import pandas as pd
 
 from src import model_family
-from src.csv_safe import excel_safe_value
+from src.csv_safe import excel_safe, excel_safe_value
 from src.fingerprint import fingerprint
 from src.load_nhtsa import DB_PATH
 from src.matcher import load_pairs
@@ -391,3 +392,87 @@ def apply(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR) -> dict[str, int]:
 def precision(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     """Matcher precision from human-reviewed LLM `same` pairs (NULL where n < 10)."""
     return con.execute(_sql("review_precision")).df()
+
+
+# ---------- CLI: queue sheet, import, rebuild ----------
+
+QUEUE_CSV = ROOT / "data/clean/review_queue.csv"
+SHEET_INPUT_COLUMNS = ["decision", "note", "from_name", "source_url", "retrieved_on"]
+
+
+def write_queue(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR,
+                out_csv: Path = QUEUE_CSV) -> pd.DataFrame:
+    """Write the queue as a formula-safe sheet with blank decision columns; return the queue."""
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        q = queue(con, ref_dir)
+    finally:
+        con.close()
+    sheet = q.assign(**{c: "" for c in SHEET_INPUT_COLUMNS})
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    excel_safe(sheet).to_csv(out_csv, index=False, encoding="utf-8")
+    return q
+
+
+def import_sheet(path: Path, db_path: Path = DB_PATH,
+                 ref_dir: Path = REF_DIR) -> tuple[int, list[str]]:
+    """Record every row of a filled-in queue sheet that has a decision; collect refusals."""
+    sheet = pd.read_csv(path, dtype=str, keep_default_na=False)
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        current = queue(con, ref_dir).set_index("item_id")
+    finally:
+        con.close()
+    recorded, errors = 0, []
+    for r in sheet[sheet.decision.str.strip() != ""].to_dict("records"):
+        item_id = r["item_id"]
+        if item_id not in current.index:
+            errors.append(f"{item_id}: not in the current queue (rerun src.review and refill)")
+            continue
+        item = {"item_id": item_id, **current.loc[item_id].to_dict()}
+        try:
+            record(item, r["decision"], r.get("note", ""), from_name=r.get("from_name"),
+                   source_url=r.get("source_url"), retrieved_on=r.get("retrieved_on"),
+                   ref_dir=ref_dir)
+            recorded += 1
+        except ValueError as exc:
+            errors.append(f"{item_id}: {exc}")
+    return recorded, errors
+
+
+def _pipeline_steps() -> list[tuple[str, object]]:
+    from src import candidates, kpis, matcher  # imported here: only --rebuild needs them
+    return [("model_family", model_family.build),
+            ("candidates", candidates.build),
+            ("matcher --all", lambda: matcher.build(scope="all")),
+            ("review", apply),
+            ("kpis", kpis.build)]
+
+
+def rebuild(steps: list[tuple[str, object]] | None = None) -> None:
+    """Rerun the pipeline after family or vocabulary decisions, in dependency order."""
+    for name, step in steps or _pipeline_steps():
+        log.info("rebuild: %s", name)
+        step()
+
+
+def main(argv: list[str] | None = None) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    args = sys.argv[1:] if argv is None else argv
+    if "--rebuild" in args:
+        rebuild()
+    if "--import" in args:
+        recorded, errors = import_sheet(Path(args[args.index("--import") + 1]))
+        print(f"recorded {recorded} decisions; refused {len(errors)}")
+        for e in errors:
+            print(f"  {e}")
+    counts = apply()
+    print("matches_reviewed: " + " ".join(f"{k}={v}" for k, v in counts.items()))
+    q = write_queue()
+    default = q[q.order.isin(DEFAULT_ORDERS)]
+    print(f"queue ({QUEUE_CSV.relative_to(ROOT).as_posix()}), default items by kind and status:")
+    print(default.groupby(["kind", "status"]).size().to_string())
+
+
+if __name__ == "__main__":
+    main()

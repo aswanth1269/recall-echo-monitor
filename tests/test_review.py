@@ -301,3 +301,58 @@ def test_precision_is_suppressed_below_ten(tmp_path):
     con = _reviewed_db(tmp_path, 9, 9)
     row = rv.precision(con).iloc[0]
     assert row.n_reviewed == 9 and pd.isna(row.precision)
+
+
+# ---------- CLI ----------
+
+def test_write_queue_is_formula_safe_with_blank_inputs(tmp_path, ref):
+    db = _db(tmp_path)
+    out = tmp_path / "queue.csv"
+    rv.write_queue(db, ref, out)
+    sheet = pd.read_csv(out, dtype=str, keep_default_na=False)
+    assert list(sheet.columns) == rv.QUEUE_COLUMNS + rv.SHEET_INPUT_COLUMNS
+    assert (sheet.decision == "").all() and len(sheet) == 6
+
+
+def test_import_records_filled_rows_and_reports_bad_ones(tmp_path, ref):
+    db = _db(tmp_path)
+    out = tmp_path / "queue.csv"
+    rv.write_queue(db, ref, out)
+    sheet = pd.read_csv(out, dtype=str, keep_default_na=False)
+    sheet.loc[sheet.key == "20V001000-1", ["decision", "note"]] = ["same", "ok"]
+    sheet.loc[sheet.key == "FIT", "decision"] = "CIVIC"           # not in the vocabulary
+    extra = sheet.iloc[[0]].assign(item_id="pair||HONDA|00X000000-1", decision="same")
+    pd.concat([sheet, extra]).to_csv(out, index=False)
+    recorded, errors = rv.import_sheet(out, db, ref)
+    assert recorded == 1 and len(errors) == 2
+    assert any("CIVIC" in e for e in errors)
+    assert any("not in the current queue" in e for e in errors)
+    assert rv.read_decisions("pair", ref).pair_id.tolist() == ["20V001000-1"]
+
+
+def test_rebuild_runs_steps_in_order():
+    ran = []
+    rv.rebuild(steps=[(name, lambda n=name: ran.append(n)) for name in ("a", "b", "c")])
+    assert ran == ["a", "b", "c"]
+
+
+def test_main_applies_and_prints_counts(monkeypatch, capsys):
+    monkeypatch.setattr(rv, "apply", lambda: {"reviewed": 1, "stale": 0, "unreviewed": 2,
+                                              "orphaned": 0})
+    monkeypatch.setattr(rv, "write_queue", lambda: pd.DataFrame(
+        {"order": [1, 5], "kind": ["family", "pair"], "status": ["open", "reviewed"]}))
+    rv.main([])
+    out = capsys.readouterr().out
+    assert "matches_reviewed: reviewed=1" in out and "family" in out
+
+
+def test_main_import_then_apply(monkeypatch, capsys, tmp_path):
+    seen = []
+    monkeypatch.setattr(rv, "import_sheet", lambda p: seen.append(p) or (2, ["x: bad"]))
+    monkeypatch.setattr(rv, "apply", lambda: {"reviewed": 2, "stale": 0, "unreviewed": 0,
+                                              "orphaned": 0})
+    monkeypatch.setattr(rv, "write_queue", lambda: pd.DataFrame(
+        {"order": [5], "kind": ["pair"], "status": ["reviewed"]}))
+    rv.main(["--import", str(tmp_path / "q.csv")])
+    out = capsys.readouterr().out
+    assert seen == [tmp_path / "q.csv"] and "recorded 2" in out and "x: bad" in out
