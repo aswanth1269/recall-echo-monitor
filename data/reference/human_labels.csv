@@ -1,31 +1,31 @@
 pair_id,human_label,note
-24V807000-108,,
-21V406000-181,,
-19V383000-41,,
-21V638000-210,,
-17V655000-227,,
-22V680000-170,,
-17V577000-86,,
-25V366000-98,,
-22V215000-187,,
-20V048000-220,,
-24V621000-259,,
-22V194000-188,,
-16V899000-228,,
-23V662000-133,,
-19V567000-330,,
-15V287000-241,,
-18V042000-38,,
-19V244000-334,,
-20V598000-2,,
-16V901000-237,,
-21V854000-162,,
-22V215000-173,,
-18V818000-282,,
-23V733000-127,,
-20V047000-202,,
-17V047000-21,,
-20V090000-206,,
-21V961000-158,,
-17V070000-285,,
-19V912000-2,,
+24V807000-108,different,"different system, eCall vs engine ECU software"
+21V406000-181,different,"different car and part, headrest vs active hood"
+19V383000-41,different,"same car, wheel burr harness vs inflator rupture"
+21V638000-210,different,"different part, passenger airbag vs belt warning"
+17V655000-227,different,"different part, windshield insulation vs rear brake caliper"
+22V680000-170,same,"GLE/GLS rear door trim bar detaches, both sides"
+17V577000-86,different,"different part, front coil spring vs hood latch"
+25V366000-98,different,"different part, AVAS sound software vs fuse box"
+22V215000-187,different,"different part, seat trim vs airbag ECU software"
+20V048000-220,same,"turbo oil feed line leak, G63/E63 both sides"
+24V621000-259,different,"different car and part, brake pedal vs HV battery"
+22V194000-188,different,"different part, rear thrust arm weld vs eCall"
+16V899000-228,different,"unsure, same EPS failure but different platforms"
+23V662000-133,different,"different part, headlight aim vs steering software"
+19V567000-330,different,"different part, occupant sensor vs fuel pump"
+15V287000-241,different,"too vague, India push button start only"
+18V042000-38,same,"Civic airbag inflator rupture, both sides"
+19V244000-334,different,"different part, load label vs fuel pump"
+20V598000-2,different,"different part, rear camera vs driver airbag"
+16V901000-237,different,"different part, brake vacuum fitting vs steering column"
+21V854000-162,different,"different part, brake discs vs airbag gas generator"
+22V215000-173,different,"different part, seat trim vs airbag ECU mounting"
+18V818000-282,different,"different part, fuel pump flange vs aux heater"
+23V733000-127,different,"different part, sunroof software vs transmission software"
+20V047000-202,different,"different part, transmission harness vs eCall position"
+17V047000-21,different,"different part, driver vs passenger airbag inflator"
+20V090000-206,same,"G63 differential lock module resistor fault, both sides"
+21V961000-158,different,"different part, fuel rail leak vs pump control unit"
+17V070000-285,different,"different part, engine block vs ABS module"
+19V912000-2,different,"different part, rear pretensioner vs driver airbag"

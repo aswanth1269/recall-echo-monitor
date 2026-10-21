@@ -1,3 +1,3 @@
 matcher,n,positives,tp,fp,fn,tn,precision,precision_n,recall,recall_n,f1,f1_n,threshold,note,labelled_by
-llm,30,5,5,0,0,25,,5,,5,1.0,10,,prompt tuned on these pairs,"Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified - all 30 pairs; no human labels yet in human_labels.csv"
-baseline,30,5,4,0,1,25,,4,,5,,9,0.2177,threshold chosen on these same pairs (flatters the baseline),"Claude Opus 5.5 (LLM), 2026-10-15, from label_sheet.csv text only - not human-verified - all 30 pairs; no human labels yet in human_labels.csv"
+llm,30,4,4,1,0,25,,5,,4,,9,,prompt tuned on these pairs,a person for all 30 pairs (human_labels.csv)
+baseline,30,4,3,1,1,25,,4,,4,,8,0.2177,threshold chosen on these same pairs (flatters the baseline),a person for all 30 pairs (human_labels.csv)
