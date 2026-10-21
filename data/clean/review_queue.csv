@@ -1,6 +1,6 @@
 item_id,order,kind,side,make,key,status,llm_answer,confidence,us_text,india_text,us_evidence,india_evidence,reason,fingerprint,previous_decision,decision,note,from_name,source_url,retrieved_on
-family|nhtsa|AUDI|ALLROAD,1,family,nhtsa,AUDI,ALLROAD,open,A4,,ALLROAD,,,,an LLM chose this family,123ebbab8f65328d,,,,,,
-family|nhtsa|BMW|5-SERIES GRAN TURISMO,1,family,nhtsa,BMW,5-SERIES GRAN TURISMO,open,5 SERIES,,5-SERIES GRAN TURISMO,,,,an LLM chose this family,e675af1c433ca67b,,,,,,
+family|nhtsa|AUDI|ALLROAD,1,family,nhtsa,AUDI,ALLROAD,reviewed,,,ALLROAD,,,,,123ebbab8f65328d,A4,,,,,
+family|nhtsa|BMW|5-SERIES GRAN TURISMO,1,family,nhtsa,BMW,5-SERIES GRAN TURISMO,reviewed,,,5-SERIES GRAN TURISMO,,,,,e675af1c433ca67b,5 SERIES,,,,,
 family|nhtsa|BMW|ACTIVE HYBRID 3,1,family,nhtsa,BMW,ACTIVE HYBRID 3,open,3 SERIES,,ACTIVE HYBRID 3,,,,an LLM chose this family,2b59bc731c363b5e,,,,,,
 family|nhtsa|BMW|ACTIVE HYBRID 5,1,family,nhtsa,BMW,ACTIVE HYBRID 5,open,5 SERIES,,ACTIVE HYBRID 5,,,,an LLM chose this family,e8f9291727b35d91,,,,,,
 family|nhtsa|BMW|ACTIVE HYBRID 7,1,family,nhtsa,BMW,ACTIVE HYBRID 7,open,7 SERIES,,ACTIVE HYBRID 7,,,,an LLM chose this family,49bc24750826ab64,,,,,,
