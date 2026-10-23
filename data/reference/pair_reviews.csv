@@ -1,0 +1,16 @@
+pair_id,decision,note,fingerprint,reviewed_at
+16V540000-27,different,"different part, driveshaft weld vs fuel pump",ec929d6d50fa20ae,2026-10-23
+19V017000-18,different,"different part, passenger vs driver airbag inflator",9b604c9564eabcac,2026-10-23
+19V017000-23,different,"different failure, inflator rupture vs unwanted deployment",0d3d30adebc4ed6a,2026-10-23
+19V017000-7,different,"different part, airbag inflator vs tank ventilation",8c3de0163b6231fb,2026-10-23
+23V865000-311,different,no India text,5afcef4cc4d0c07f,2026-10-23
+24V128000-311,different,no India text,6223124af5889f38,2026-10-23
+24V548000-311,different,no India text,5c501b0e9bcdc0f2,2026-10-23
+25V028000-311,different,no India text,02d83c1732147685,2026-10-23
+25V059000-311,different,no India text,9b9cb620d60e6740,2026-10-23
+25V595000-311,different,no India text,10066cb412e17a93,2026-10-23
+25V744000-311,different,no India text,4b87bb5d50357647,2026-10-23
+25V869000-311,different,no India text,a9e72ecb69d4be11,2026-10-23
+26V179000-300,different,no India text,8568e6f81b8cbe7e,2026-10-23
+26V341000-300,different,no India text,65c7d9849d4ebb01,2026-10-23
+16V171000-293,different,"too vague, India says software update only",8120c64c276c9ed5,2026-10-23
