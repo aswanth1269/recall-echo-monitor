@@ -1,4 +1,69 @@
 side,make,key,family,note,fingerprint,reviewed_at
 nhtsa,AUDI,ALLROAD,A4,,123ebbab8f65328d,2026-10-17
 nhtsa,BMW,5-SERIES GRAN TURISMO,5 SERIES,,e675af1c433ca67b,2026-10-17
-nhtsa,MERCEDES-BENZ,AMG EQE,EQE SUV,,10e9a88cd2b14137,2026-10-21
+nhtsa,BMW,ACTIVE HYBRID 3,3 SERIES,"same car, hybrid version",2b59bc731c363b5e,2026-10-23
+nhtsa,BMW,ACTIVE HYBRID 5,5 SERIES,"same car, hybrid version",e8f9291727b35d91,2026-10-23
+nhtsa,BMW,ACTIVE HYBRID 7,7 SERIES,"same car, hybrid version",49bc24750826ab64,2026-10-23
+nhtsa,BMW,ACTIVEHYBRID 7,7 SERIES,"same car, hybrid version",b3c861285f4d594b,2026-10-23
+nhtsa,HONDA,FIT,JAZZ,"same car, India name",b75cf5d1e7c3bd16,2026-10-23
+nhtsa,HONDA,HR-V,none,"different car, HR-V is not WR-V",955b9b824d8be510,2026-10-23
+nhtsa,KIA,SEDONA,CARNIVAL,"same car, old US name",df63c5ec12974aee,2026-10-23
+nhtsa,MERCEDES-BENZ,AMG EQE 53 4MATIC,none,"EQE sedan, India sells only EQE SUV",2e361b46a15933a3,2026-10-23
+nhtsa,MERCEDES-BENZ,EQE 350 4MATIC,none,"EQE sedan, SUV has its own NHTSA name",5b585ede9bc389ba,2026-10-23
+nhtsa,MERCEDES-BENZ,EQE 350+,none,"EQE sedan, SUV has its own NHTSA name",cfc8f65436a8cf67,2026-10-23
+nhtsa,MERCEDES-BENZ,EQE 500,none,"EQE sedan, SUV has its own NHTSA name",5889d30661aa62ab,2026-10-23
+nhtsa,MERCEDES-BENZ,EQE 500 4MATIC,none,"EQE sedan, SUV has its own NHTSA name",bb2c949a4fbf428e,2026-10-23
+nhtsa,MERCEDES-BENZ,EQE350,none,"EQE sedan, SUV has its own NHTSA name",a33112e7bec1f0d9,2026-10-23
+nhtsa,MERCEDES-BENZ,ESPRINTER,SPRINTER,"same van, electric version",6c3157fd9308dc05,2026-10-23
+nhtsa,MERCEDES-BENZ,REDUNDANT AMG GLC43 4MATIC,GLC,"same car, AMG trim",41c8c1cf7bde7384,2026-10-23
+nhtsa,MERCEDES-BENZ,REDUNDANT C63 AMG,C-CLASS,"same car, AMG trim",8f9be0e6cc1f08b7,2026-10-23
+nhtsa,MERCEDES-BENZ,redundant EQE 350,none,"EQE sedan, SUV has its own NHTSA name",bc60372e40a98e78,2026-10-23
+nhtsa,MERCEDES-BENZ,redundant EQE 350 4MATIC,none,"EQE sedan, SUV has its own NHTSA name",efc17cfb0352d51c,2026-10-23
+nhtsa,MERCEDES-BENZ,redundant EQS 450,EQS,same car,b86400656f2de6ff,2026-10-23
+nhtsa,MERCEDES-BENZ,redundant S550E,S-CLASS,"same car, plug-in hybrid",277b1af5f3cf4045,2026-10-23
+nhtsa,NISSAN,SENTRA,none,"different car, Sentra is not Sunny",b639138c1b3a31a5,2026-10-23
+nhtsa,NISSAN,VERSA,SUNNY,Versa sedan 2012-19 is the Sunny; other gens differ,a1e91aa9e894e617,2026-10-23
+nhtsa,NISSAN,VERSA NOTE,none,"different car, Note is not Micra",b353184efb0cf1f0,2026-10-23
+nhtsa,TOYOTA,GR COROLLA,none,"unsure, GR hatch differs from India Corolla sedan",e12bafe12ba7ecbf,2026-10-23
+nhtsa,TOYOTA,redundant CAMRY,CAMRY,same car,c76406ffca852e49,2026-10-23
+nhtsa,VOLKSWAGEN,E-GOLF,GOLF GTI,"same car, electric Golf",683125e619d849f0,2026-10-23
+nhtsa,VOLKSWAGEN,EGOLF,GOLF GTI,"same car, electric Golf",43aff4afbe5b1daa,2026-10-23
+nhtsa,VOLKSWAGEN,GLI,JETTA,"same car, Jetta sport trim",d9fab7893eb12610,2026-10-23
+nhtsa,VOLKSWAGEN,GOLF,GOLF GTI,"same car, base Golf",c5f9953332ea5aa8,2026-10-23
+nhtsa,VOLKSWAGEN,GOLF ALLTRACK,GOLF GTI,"same car, Golf wagon body",303da13b126c323b,2026-10-23
+nhtsa,VOLKSWAGEN,GOLF R,GOLF GTI,"same car, Golf trim",1655f478c8f58cf1,2026-10-23
+nhtsa,VOLKSWAGEN,GOLF SPORTWAGEN,GOLF GTI,"same car, Golf wagon body",45ed432bcb81adcf,2026-10-23
+nhtsa,VOLKSWAGEN,GTI,GOLF GTI,same car,441715feddbb5064,2026-10-23
+nhtsa,VOLKSWAGEN,PASSAT WAGON,PASAT,"same car, 2006-10 global Passat wagon",f8080ccc558fec8f,2026-10-23
+nhtsa,VOLKSWAGEN,RABBIT,GOLF GTI,"same car, old US Golf name",7da6a9b424128685,2026-10-23
+nhtsa,VOLVO,C40BEV,EC40,"same car, renamed EC40",13def66105f3ec17,2026-10-23
+nhtsa,VOLVO,EX40,XC40,"same car, renamed electric XC40",52caf8f27d3ad496,2026-10-23
+nhtsa,VOLVO,redundant XC90MHEV,XC90,"same car, mild hybrid",9995d8b0f1821884,2026-10-23
+siam,AUDI,252,E-TRON,e-tron and Q8 e-tron,2272c3a33b653efb,2026-10-23
+siam,AUDI,256,E-TRON GT,e-tron GT,3188059318f1f448,2026-10-23
+siam,AUDI,258,E-TRON GT,e-tron GT,b118ed8a297e7b24,2026-10-23
+siam,AUDI,265,Q8,Q8,d0b0ec8b5a380279,2026-10-23
+siam,AUDI,267,A6,also A7 and A8,4af835dfb719d67f,2026-10-23
+siam,AUDI,268,A5,also Q5,05c968e6cb822286,2026-10-23
+siam,AUDI,269,Q5,Q5,21f3db3a0b5a99a4,2026-10-23
+siam,AUDI,279,A4,also A6,0f8a39d710fe101c,2026-10-23
+siam,AUDI,281,none,R8 not in vocabulary,b240b219dfa6dfdc,2026-10-23
+siam,AUDI,286,Q5,Q5,337ae7e7b52c2292,2026-10-23
+siam,AUDI,287,A6,A6,429fea2cd783c2d8,2026-10-23
+siam,AUDI,288,Q7,Q7,5655c883d533776e,2026-10-23
+siam,AUDI,289,A8,A8,9e114d24701791d2,2026-10-23
+siam,AUDI,290,A8,A8,3681f066e1b72432,2026-10-23
+siam,BMW,15,none,motorcycle,a1ae9c1fa91fbe40,2026-10-23
+siam,BMW,16,none,"MINI, not a BMW family",8c1f2925c8086373,2026-10-23
+siam,BMW,19,none,"MINI, not a BMW family",fa06e9cebd315770,2026-10-23
+siam,BMW,25,none,MINI chassis codes,709cd3c0f79f258f,2026-10-23
+siam,BMW,26,none,"MINI, not a BMW family",f8d7d0a8b031267b,2026-10-23
+siam,BMW,28,3 SERIES,"E9x is 3 Series, also E8x 1 Series",01208e5c3211d918,2026-10-23
+siam,BMW,30,3 SERIES,E90 is 3 Series,f6e76137a4c2c08f,2026-10-23
+siam,MERCEDES-BENZ,120,GLE,model 167 is GLE,37d70f17b7a23ecb,2026-10-23
+siam,MERCEDES-BENZ,169,V-CLASS,447 is the V-Class van,e719d68093734f93,2026-10-23
+siam,VOLKSWAGEN,257,TAIGUN,also Virtus,affa5cb443d87b19,2026-10-23
+siam,VOLKSWAGEN,262,POLO,also Vento and Passat,13525047ed37702a,2026-10-23
+siam,VOLVO,351,none,"too vague, no model named",428af08f463f1b76,2026-10-23
+nhtsa,MERCEDES-BENZ,AMG EQE,none,"decided by the user in chat, 2026-10-24",10e9a88cd2b14137,2026-10-24
+nhtsa,VOLKSWAGEN,PASSAT,PASAT,"decided by the user in chat, 2026-10-24",abd0fcb89abd0e3e,2026-10-24
