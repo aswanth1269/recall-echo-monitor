@@ -1,7 +1,8 @@
 """Human review of LLM decisions: build the queue, record decisions, apply them.
 
 Decision files (data/reference, hand-editable, committed):
-  pair_reviews.csv            pair_id, decision (same|different), note, fingerprint, reviewed_at
+  pair_reviews.csv            pair_id, decision (same|different|cannot_judge), note,
+                              fingerprint, reviewed_at
   model_family_overrides.csv  side, make, key, family, note, fingerprint, reviewed_at
                               (read by src/model_family.py)
   vocabulary_reviews.csv      make, family, decision (distinct|alias), note, fingerprint, reviewed_at
@@ -56,7 +57,9 @@ COLUMNS = {"pair": ["pair_id", "decision", "note", "fingerprint", "reviewed_at"]
            "alias": model_family.ALIAS_COLUMNS}
 KEYS = {"pair": ["pair_id"], "family": ["side", "make", "key"],
         "vocabulary": ["make", "family"], "alias": ["make", "from_name"]}
-PAIR_DECISIONS = ("same", "different")
+# cannot_judge: nothing to compare (e.g. the India row has no defect text). Applied,
+# but never an echo and left out of the precision figure.
+PAIR_DECISIONS = ("same", "different", "cannot_judge")
 VOCAB_DECISIONS = ("distinct", "alias")
 
 log = logging.getLogger(__name__)
@@ -166,7 +169,8 @@ def record(item: dict, decision: str | list[str], note: str = "", *,
 
     if kind == "pair":
         if decision not in PAIR_DECISIONS:
-            raise ValueError(f"a pair decision must be same or different, not {decision!r}")
+            raise ValueError("a pair decision must be same or different (or cannot_judge when "
+                             f"there is nothing to compare), not {decision!r}")
         return [_upsert("pair", {"pair_id": key, "decision": decision, "note": note,
                                  "fingerprint": fp, "reviewed_at": today}, ref_dir)]
 
@@ -404,7 +408,7 @@ def apply(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR) -> dict[str, int]:
     pairs = read_decisions("pair", ref_dir)
     bad = sorted(set(pairs.decision) - set(PAIR_DECISIONS))
     if bad:
-        raise ValueError(f"{FILES['pair']} has decisions other than same/different: {bad}")
+        raise ValueError(f"{FILES['pair']} has decisions other than same/different/cannot_judge: {bad}")
     con = duckdb.connect(str(db_path))
     try:
         cols = {r[0] for r in con.execute("DESCRIBE matches").fetchall()}

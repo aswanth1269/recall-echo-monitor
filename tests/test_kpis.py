@@ -291,3 +291,15 @@ def test_kpi_rows_carry_n_reviewed(results):
     assert "n_reviewed" in results["echo_by_component"].columns
     by = results["ota"][results["ota"].part == "echo_by_ota"]
     assert by.n_reviewed.notna().all()
+
+
+def test_cannot_judge_is_not_an_echo_and_shows_in_explorer(tmp_path):
+    db, makes = _fake(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("UPDATE matches_reviewed SET human_decision = 'cannot_judge', "
+                "final_label = 'cannot_judge' WHERE CAMPNO = 'A00'")
+    con.close()
+    r = kpis.build(db_path=db, out_dir=tmp_path / "o", makes_csv=makes)
+    a = _row(r["echo_rate"], level="make", grp="A")
+    assert (a.echoing, a.n_reviewed) == (2, 11)                # reviewed, but not an echo
+    assert r["echo_explorer"].set_index("CAMPNO").loc["A00", "label"] == "cannot_judge"

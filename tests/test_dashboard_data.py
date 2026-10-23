@@ -184,7 +184,8 @@ def test_f1_only_on_method_tab_with_who_labelled(review_project):
 
 
 def test_pair_review_summary_counts_llm_same_pairs(review_project):
-    assert ds.pair_review_summary() == {"n_llm_same": 2, "n_reviewed": 1, "n_confirmed": 1}
+    assert ds.pair_review_summary() == {"n_llm_same": 2, "n_reviewed": 1, "n_confirmed": 1,
+                                        "n_cannot_judge": 0}
 
 
 def test_pairs_reviewed_tile_shows_share_from_ten(review_project):
@@ -324,3 +325,26 @@ def test_show_reviewed_and_search_bring_back_a_decided_item(siam_project):
     assert not at.exception, [e.value for e in at.exception]
     text = " ".join(m.value for m in at.tabs[3].markdown)
     assert "FIT" in text and "already decided" in text
+
+
+def test_cannot_judge_button_saves_and_is_left_out_of_the_share(review_project):
+    at = _run(review_project)
+    at.checkbox(key="review_only_sample").check().run()        # go straight to the pair
+    at.button(key="review_cannot_judge").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+    df = pd.read_csv(review_project / "data/reference/pair_reviews.csv", dtype=str)
+    assert df.decision.tolist() == ["cannot_judge"]
+    q = review_project / "data/clean/review_queue.csv"
+    q.write_text(q.read_text(encoding="utf-8").replace(
+        "20V003000-3,reviewed,same,0.8,a,b,,,,cccccccccccccccc,same",
+        "20V003000-3,reviewed,same,0.8,a,b,,,,cccccccccccccccc,cannot_judge"), encoding="utf-8")
+    assert ds.pair_review_summary() == {"n_llm_same": 2, "n_reviewed": 0, "n_confirmed": 0,
+                                        "n_cannot_judge": 1}
+
+
+def test_explorer_names_cannot_judge(project):
+    path = project / "data/clean/echo_explorer.csv"
+    path.write_text(path.read_text(encoding="utf-8").replace(",same,", ",cannot_judge,"),
+                    encoding="utf-8")
+    at = _run(project)
+    assert not at.exception, [e.value for e in at.exception]

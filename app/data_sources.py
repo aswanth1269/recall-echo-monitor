@@ -157,6 +157,9 @@ def review_queue() -> pd.DataFrame | None:
 def pair_review_summary() -> dict[str, int] | None:
     """LLM `same` pairs in the queue: how many there are, reviewed, and confirmed `same`.
 
+    n_reviewed counts same/different decisions only; cannot_judge (nothing to
+    compare) is counted apart, so it never dilutes the share confirmed.
+
     Counts come from the queue as of the last `python -m src.review` run; a
     stale decision (text changed since) does not count as reviewed.
     """
@@ -165,8 +168,10 @@ def pair_review_summary() -> dict[str, int] | None:
         return None
     same = q[(q["kind"] == "pair") & (q["order"].astype(str) == "5")]
     reviewed = same[same["status"] == "reviewed"]
-    return {"n_llm_same": len(same), "n_reviewed": len(reviewed),
-            "n_confirmed": int((reviewed["previous_decision"] == "same").sum())}
+    judged = reviewed[reviewed["previous_decision"].isin(["same", "different"])]
+    return {"n_llm_same": len(same), "n_reviewed": len(judged),
+            "n_confirmed": int((judged["previous_decision"] == "same").sum()),
+            "n_cannot_judge": int((reviewed["previous_decision"] == "cannot_judge").sum())}
 
 
 def decisions_newer_than_queue() -> bool:

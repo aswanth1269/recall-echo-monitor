@@ -209,6 +209,7 @@ with tab_overview:
               + (f"share {pr['n_confirmed'] / pr['n_reviewed'] * 100:.0f}% (n={pr['n_reviewed']})"
                  if pr["n_reviewed"] >= MIN_N else
                  f"n&lt;{MIN_N}, share not shown (n={pr['n_reviewed']})")
+              + (f" · {pr['n_cannot_judge']} can't judge" if pr.get("n_cannot_judge") else "")
               + " · LLM echoes a person checked")
              if pr else "run src.review",
              pr["n_confirmed"] / pr["n_reviewed"] if pr and pr["n_reviewed"] >= MIN_N else None,
@@ -294,8 +295,9 @@ with tab_explore:
         makes = f1.multiselect("Carmaker", sorted(ex["make"].dropna().unique()))
         nice = {"same": "India echo confirmed", "awaiting_review": "Awaiting review",
                 "different": "No match", "needs_review": "Needs review",
-                "no_candidate": "No India candidate"}
-        labels = f2.multiselect("Result", ["same", "awaiting_review", "different", "no_candidate"],
+                "cannot_judge": "Can't judge (no text)", "no_candidate": "No India candidate"}
+        labels = f2.multiselect("Result", ["same", "awaiting_review", "different", "cannot_judge",
+                                           "no_candidate"],
                                 format_func=nice.get)
         query = f3.text_input("Search component or defect", placeholder="e.g. airbag, software, brake")
         view = ex.copy()
@@ -342,6 +344,9 @@ with tab_explore:
             elif label == "different":
                 st.caption("No match: the LLM's verdict, or a person's where the pair was reviewed. "
                            "Highlighted text is the evidence the LLM quoted.")
+            elif label == "cannot_judge":
+                st.caption("Can't judge: a person found nothing to compare (for example, the India "
+                           "row has no defect text). Not an echo, and not in the precision figure.")
             elif label == "awaiting_review":
                 st.caption("Awaiting review: the LLM proposed a match or its answer could not be "
                            "checked. It does not count as an echo until a person confirms it.")
@@ -470,9 +475,13 @@ with tab_review:
                            + (f" (confidence {float(item['confidence']):.2f})" if item.get("confidence") else "")
                            + (f" · {item['reason']}" if item.get("reason") else ""))
                 st.text_input("Note (optional)", key="review_note")
-                c1, c2, _ = st.columns([1, 1, 4])
+                c1, c2, c3, _ = st.columns([1, 1, 1.4, 3])
                 c1.button("Same", key="review_same", on_click=_save, args=(item, "same"))
                 c2.button("Different", key="review_different", on_click=_save, args=(item, "different"))
+                c3.button("Can't judge", key="review_cannot_judge", on_click=_save,
+                          args=(item, "cannot_judge"),
+                          help="Nothing to compare, e.g. the India row has no defect text. "
+                               "Never counted as an echo or in the precision figure.")
 
             elif item["kind"] == "family":
                 shown = item["us_text"] or item["india_text"]

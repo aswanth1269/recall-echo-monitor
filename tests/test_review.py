@@ -455,3 +455,29 @@ def test_queue_shows_all_families_and_variant_text(tmp_path, ref):
     rv.record({**item.to_dict(), "key": "3"}, ["CITY", "AMAZE"], ref_dir=ref)
     row = _queue(tmp_path, ref).set_index("key").loc["3"]
     assert (row.status, row.previous_decision) == ("reviewed", "CITY; AMAZE")
+
+
+# ---------- cannot_judge: nothing to compare ----------
+
+def test_cannot_judge_is_a_pair_decision(ref):
+    rv.record(PAIR_ITEM, "cannot_judge", "no India text", ref_dir=ref)
+    assert rv.read_decisions("pair", ref).decision.tolist() == ["cannot_judge"]
+
+
+def test_cannot_judge_is_applied_but_never_an_echo(tmp_path, ref):
+    db = _db(tmp_path)
+    rv.record({**PAIR_ITEM, "key": "20V002000-2", "fingerprint": _fp(db, "20V002000-2")},
+              "cannot_judge", ref_dir=ref)
+    rv.apply(db, ref)
+    con = duckdb.connect(str(db), read_only=True)
+    assert con.execute("SELECT review_status, final_label FROM matches_reviewed "
+                       "WHERE pair_id = '20V002000-2'").fetchone() == ("reviewed", "cannot_judge")
+    con.close()
+
+
+def test_precision_leaves_out_cannot_judge(tmp_path):
+    con = _reviewed_db(tmp_path, 12, 9)
+    con.execute("INSERT INTO matches_reviewed VALUES ('same', 'reviewed', 'cannot_judge'), "
+                "('same', 'reviewed', 'cannot_judge')")
+    row = rv.precision(con).iloc[0]
+    assert (row.n_reviewed, row.n_confirmed, row.precision, row.n_cannot_judge) == (12, 9, 0.75, 2)
