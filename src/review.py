@@ -398,6 +398,18 @@ def precision(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
 
 QUEUE_CSV = ROOT / "data/clean/review_queue.csv"
 SHEET_INPUT_COLUMNS = ["decision", "note", "from_name", "source_url", "retrieved_on"]
+# Fixed-seed sample of LLM `same` pairs, for estimating matcher precision
+# without reviewing all of them. Drawn from every LLM `same` pair whatever its
+# status, so the same pairs stay in the sample while you review them.
+SAMPLE_N = 60
+SAMPLE_SEED = 20261024
+
+
+def sample_item_ids(q: pd.DataFrame, n: int = SAMPLE_N, seed: int = SAMPLE_SEED) -> set[str]:
+    """item_ids of a fixed random sample of n LLM `same` pairs (all of them if fewer)."""
+    pool = q[(q["kind"] == "pair") & (q["order"].astype(int) == ORDER["same"])]
+    ids = pool["item_id"].drop_duplicates().sort_values().reset_index(drop=True)
+    return set(ids.sample(n=min(n, len(ids)), random_state=seed))
 
 
 def write_queue(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR,
@@ -408,7 +420,8 @@ def write_queue(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR,
         q = queue(con, ref_dir)
     finally:
         con.close()
-    sheet = q.assign(**{c: "" for c in SHEET_INPUT_COLUMNS})
+    sheet = q.assign(in_sample=q["item_id"].isin(sample_item_ids(q)),
+                     **{c: "" for c in SHEET_INPUT_COLUMNS})
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     excel_safe(sheet).to_csv(out_csv, index=False, encoding="utf-8")
     return q

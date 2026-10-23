@@ -272,3 +272,14 @@ def test_explorer_shows_awaiting_review(project):
                     encoding="utf-8")
     at = _run(project)
     assert not at.exception, [e.value for e in at.exception]
+
+
+def test_review_tab_sample_filter_shows_only_sampled_same_pairs(review_project):
+    at = _run(review_project)
+    at.checkbox(key="review_only_sample").check().run()
+    assert not at.exception, [e.value for e in at.exception]
+    review = at.tabs[3]
+    text = " ".join(m.value for m in review.markdown)
+    assert "20V001000-1" in text and "Echo candidate" in text     # family item FIT filtered out
+    assert "FIT" not in text.split("item(s) to review")[1]
+    assert any("Sample: 1 of 2 reviewed" in c.value for c in review.caption)

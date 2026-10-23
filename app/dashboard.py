@@ -406,6 +406,8 @@ with tab_review:
         kinds = f1.multiselect("Kind", list(KIND_NAMES), format_func=KIND_NAMES.get)
         makes = f2.multiselect("Carmaker ", sorted(q["make"].unique()))
         extra = f3.checkbox("Also show LLM 'none' family answers")
+        only_sample = f3.checkbox(f"Only the fixed sample of {review.SAMPLE_N} LLM 'same' pairs",
+                                  key="review_only_sample")
         todo = review.outstanding(q, ds.ref_dir())
         orders = list(review.DEFAULT_ORDERS) + ([6] if extra else [])
         todo = todo[todo["order"].astype(int).isin(orders)]
@@ -413,6 +415,13 @@ with tab_review:
             todo = todo[todo["kind"].isin(kinds)]
         if makes:
             todo = todo[todo["make"].isin(makes)]
+        if only_sample:
+            sample = review.sample_item_ids(q)
+            todo = todo[todo["item_id"].isin(sample)]
+            done = int((q["item_id"].isin(sample) & (q["status"] == "reviewed")).sum())
+            st.caption(f"Sample: {done} of {len(sample)} reviewed (random, seed "
+                       f"{review.SAMPLE_SEED}; the same pairs every time). Counts update after "
+                       "python -m src.review.")
         todo = todo[~todo["item_id"].isin(st.session_state.get("review_skipped", set()))]
         orphans = q[q["status"] == "orphaned"]
         if len(orphans):

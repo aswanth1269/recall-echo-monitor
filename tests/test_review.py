@@ -310,7 +310,7 @@ def test_write_queue_is_formula_safe_with_blank_inputs(tmp_path, ref):
     out = tmp_path / "queue.csv"
     rv.write_queue(db, ref, out)
     sheet = pd.read_csv(out, dtype=str, keep_default_na=False)
-    assert list(sheet.columns) == rv.QUEUE_COLUMNS + rv.SHEET_INPUT_COLUMNS
+    assert list(sheet.columns) == rv.QUEUE_COLUMNS + ["in_sample"] + rv.SHEET_INPUT_COLUMNS
     assert (sheet.decision == "").all() and len(sheet) == 6
 
 
@@ -369,3 +369,39 @@ def test_apply_with_no_decisions_keeps_text_columns(tmp_path, ref):
     assert con.execute("SELECT count(*) FROM matches_reviewed WHERE final_label = 'same'"
                        ).fetchone()[0] == 0
     con.close()
+
+
+# ---------- fixed-seed sample of LLM `same` pairs ----------
+
+def _same_queue(n_same: int) -> pd.DataFrame:
+    rows = [{"item_id": f"pair||X|C{i:03d}-1", "kind": "pair", "order": 5,
+             "status": "open"} for i in range(n_same)]
+    rows += [{"item_id": "pair||X|NR-1", "kind": "pair", "order": 4, "status": "open"},
+             {"item_id": "family|nhtsa|X|M", "kind": "family", "order": 1, "status": "open"}]
+    return pd.DataFrame(rows)
+
+
+def test_sample_takes_n_llm_same_pairs_only():
+    s = rv.sample_item_ids(_same_queue(100), n=60)
+    assert len(s) == 60 and all(i.startswith("pair||X|C") for i in s)
+
+
+def test_sample_is_fixed_and_ignores_row_order_and_status():
+    q = _same_queue(100)
+    first = rv.sample_item_ids(q, n=60)
+    shuffled = q.sample(frac=1, random_state=1).assign(
+        status=["reviewed"] * 50 + ["open"] * (len(q) - 50))      # reviewing must not move it
+    assert rv.sample_item_ids(shuffled, n=60) == first
+    assert rv.sample_item_ids(q, n=60, seed=rv.SAMPLE_SEED + 1) != first
+
+
+def test_sample_smaller_pool_takes_everything():
+    assert len(rv.sample_item_ids(_same_queue(7), n=60)) == 7
+
+
+def test_queue_sheet_marks_the_sample(tmp_path, ref):
+    out = tmp_path / "queue.csv"
+    rv.write_queue(_db(tmp_path), ref, out)
+    sheet = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("key")
+    assert sheet.loc["20V001000-1", "in_sample"] == "True"       # the only LLM same pair
+    assert sheet.loc["20V002000-2", "in_sample"] == "False"      # needs_review is not sampled
