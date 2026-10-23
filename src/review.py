@@ -106,6 +106,31 @@ def _upsert(kind: str, row: dict, ref_dir: Path) -> dict:
     return {"kind": kind, "keys": keys, "previous": previous}
 
 
+def _replace_rows(kind: str, keys: dict[str, str], rows: list[dict], ref_dir: Path) -> dict:
+    """Replace every row with these keys by `rows` (several rows may share a key)."""
+    df = read_decisions(kind, ref_dir)
+    hit = _mask(df, keys)
+    previous = df[hit].to_dict("records") or None
+    new = pd.DataFrame(rows, columns=COLUMNS[kind])
+    out = pd.concat([df[~hit], new], ignore_index=True) if len(df) else new
+    _write_atomic(ref_dir / FILES[kind], out)
+    return {"kind": kind, "keys": keys, "previous": previous}
+
+
+def _family_list(make: str, side: str, decision: str, ref_dir: Path) -> list[str]:
+    """Families from 'A6; A7' (or one name, or 'none'); several only for an India row."""
+    parts = [_s(x) for x in decision.split(";") if _s(x)]
+    if not parts:
+        raise ValueError("choose a family, several families, or 'none'")
+    families = list(dict.fromkeys(_family_value(make, x, ref_dir) for x in parts))
+    if model_family.NONE in families and len(families) > 1:
+        raise ValueError("'none' cannot be combined with a family")
+    if side == "nhtsa" and len(families) > 1:
+        raise ValueError("a US model name maps to one family; several are allowed only for "
+                         "an India (SIAM) row that names several models")
+    return families
+
+
 def _family_value(make: str, decision: str, ref_dir: Path) -> str:
     if decision.lower() == model_family.NONE:
         return model_family.NONE
@@ -116,15 +141,21 @@ def _family_value(make: str, decision: str, ref_dir: Path) -> str:
     return allowed[decision.upper()]
 
 
-def record(item: dict, decision: str, note: str = "", *, from_name: str | None = None,
+def record(item: dict, decision: str | list[str], note: str = "", *,
+           from_name: str | None = None,
            source_url: str | None = None, retrieved_on: str | None = None,
            ref_dir: Path = REF_DIR, today: str | None = None) -> list[dict]:
     """Validate one decision on a queue item and write it; return the changes (for undo).
+
+    A family decision for an India row may name several families, as a list or
+    as 'A6; A7; A8'; it replaces every earlier family row for that item.
 
     Raises ValueError, writing nothing, when the decision is not allowed for the
     item, a family is outside the vocabulary, or an alias lacks a source.
     """
     kind, make, key = _s(item.get("kind")), _s(item.get("make")), _s(item.get("key"))
+    if isinstance(decision, (list, tuple)):
+        decision = "; ".join(_s(d) for d in decision)
     fp, decision = _s(item.get("fingerprint")), _s(decision)
     today = today or date.today().isoformat()
     note = excel_safe_value(_s(note))
@@ -140,10 +171,11 @@ def record(item: dict, decision: str, note: str = "", *, from_name: str | None =
                                  "fingerprint": fp, "reviewed_at": today}, ref_dir)]
 
     if kind == "family":
-        family = _family_value(make, decision, ref_dir)
-        return [_upsert("family", {"side": _s(item.get("side")), "make": make, "key": key,
-                                   "family": family, "note": note, "fingerprint": fp,
-                                   "reviewed_at": today}, ref_dir)]
+        side = _s(item.get("side"))
+        rows = [{"side": side, "make": make, "key": key, "family": f, "note": note,
+                 "fingerprint": fp, "reviewed_at": today}
+                for f in _family_list(make, side, decision, ref_dir)]
+        return [_replace_rows("family", {"side": side, "make": make, "key": key}, rows, ref_dir)]
 
     if decision not in VOCAB_DECISIONS:
         raise ValueError(f"a vocabulary decision must be distinct or alias, not {decision!r}")
@@ -175,7 +207,9 @@ def undo(changes: list[dict], ref_dir: Path = REF_DIR) -> None:
         df = read_decisions(kind, ref_dir)
         df = df[~_mask(df, change["keys"])]
         if change["previous"] is not None:
-            prev = pd.DataFrame([change["previous"]], columns=COLUMNS[kind])
+            previous = change["previous"]
+            previous = previous if isinstance(previous, list) else [previous]
+            prev = pd.DataFrame(previous, columns=COLUMNS[kind])
             df = pd.concat([df, prev], ignore_index=True) if len(df) else prev
         _write_atomic(ref_dir / FILES[kind], df)
 
@@ -248,7 +282,10 @@ def _resolve(items: dict, decisions: list[tuple], lookup) -> list[dict]:
 
 def _family_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
     nhtsa = con.execute("SELECT make, MODELTXT, family, method FROM nhtsa_model_family").df()
-    siam = con.execute("SELECT csv_row, make, model FROM siam_recalls").df()
+    has_variant = "variant" in {r[0] for r in con.execute("DESCRIBE siam_recalls").fetchall()}
+    siam = con.execute("SELECT csv_row, make, model, "
+                       + ("variant" if has_variant else "NULL AS variant")
+                       + " FROM siam_recalls").df()
     with_family = {int(r[0]) for r in con.execute(
         "SELECT DISTINCT csv_row FROM siam_row_family").fetchall()}
 
@@ -261,8 +298,9 @@ def _family_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
                          "nhtsa", r.make, r.MODELTXT, r.MODELTXT))
 
     def siam_item(r):
+        variant = _s(r.variant)
         return _item(ORDER["family_zero"], "family", "siam", r.make, str(r.csv_row),
-                     india_text=r.model,
+                     india_text=_s(r.model) + (f" | variant: {variant}" if variant else ""),
                      reason=("SIAM row produced zero families" if r.csv_row not in with_family
                              else "SIAM row has a family decision"),
                      fingerprint=model_family.override_fingerprint(
@@ -286,8 +324,11 @@ def _family_items(con: duckdb.DuckDBPyConnection, ref_dir: Path) -> list[dict]:
             return siam_item(by_siam[(make, key)])
         return None
 
-    dec = [(("family", r.side, r.make, r.key), r.family, r.fingerprint)
-           for r in read_decisions("family", ref_dir).itertuples(index=False)]
+    # an India row may hold several family rows: one decision, families joined by '; '
+    dec = [(("family", side, make, key), "; ".join(g.family),
+            g.fingerprint.iloc[0] if g.fingerprint.nunique() == 1 else "mixed")
+           for (side, make, key), g in read_decisions("family", ref_dir)
+           .groupby(["side", "make", "key"], sort=False)]
     return _resolve(items, dec, lookup)
 
 

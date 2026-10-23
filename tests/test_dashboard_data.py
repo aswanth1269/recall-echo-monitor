@@ -283,3 +283,44 @@ def test_review_tab_sample_filter_shows_only_sampled_same_pairs(review_project):
     assert "20V001000-1" in text and "Echo candidate" in text     # family item FIT filtered out
     assert "FIT" not in text.split("item(s) to review")[1]
     assert any("Sample: 1 of 2 reviewed" in c.value for c in review.caption)
+
+
+# ---------- India rows with several families; going back to reviewed items ----------
+
+SIAM_ROW = ("family|siam|BIGCO|252,2,family,siam,BIGCO,252,open,,,,"
+            "Bigco | variant: City & Amaze,,,SIAM row produced zero families,"
+            "ffffffffffffffff,,,,,,\n")
+
+
+@pytest.fixture
+def siam_project(review_project):
+    q = review_project / "data/clean/review_queue.csv"
+    q.write_text(q.read_text(encoding="utf-8") + SIAM_ROW, encoding="utf-8")
+    (review_project / "data/reference/model_families.csv").write_text(
+        "make,family,source\nBIGCO,AMAZE,india_models\nBIGCO,CITY,india_models\n",
+        encoding="utf-8")
+    # FIT already decided, so the India row is the first item
+    (review_project / "data/reference/model_family_overrides.csv").write_text(
+        "side,make,key,family,note,fingerprint,reviewed_at\n"
+        "nhtsa,BIGCO,FIT,CITY,,aaaaaaaaaaaaaaaa,2026-10-24\n", encoding="utf-8")
+    return review_project
+
+
+def test_india_row_shows_variant_and_saves_several_families(siam_project):
+    at = _run(siam_project)
+    text = " ".join(m.value for m in at.tabs[3].markdown)
+    assert "variant: City &amp; Amaze" in text or "variant: City & Amaze" in text
+    at.multiselect(key="review_family_multi").select("CITY").select("AMAZE").run()
+    at.button(key="review_confirm").click().run()
+    assert not at.exception, [e.value for e in at.exception]
+    df = pd.read_csv(siam_project / "data/reference/model_family_overrides.csv", dtype=str)
+    assert sorted(df[df.side == "siam"].family) == ["AMAZE", "CITY"]
+
+
+def test_show_reviewed_and_search_bring_back_a_decided_item(siam_project):
+    at = _run(siam_project)
+    at.checkbox(key="review_show_reviewed").check().run()
+    at.text_input(key="review_search").input("FIT").run()
+    assert not at.exception, [e.value for e in at.exception]
+    text = " ".join(m.value for m in at.tabs[3].markdown)
+    assert "FIT" in text and "already decided" in text

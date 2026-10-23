@@ -405,3 +405,53 @@ def test_queue_sheet_marks_the_sample(tmp_path, ref):
     sheet = pd.read_csv(out, dtype=str, keep_default_na=False).set_index("key")
     assert sheet.loc["20V001000-1", "in_sample"] == "True"       # the only LLM same pair
     assert sheet.loc["20V002000-2", "in_sample"] == "False"      # needs_review is not sampled
+
+
+# ---------- several families for one India row ----------
+
+SIAM_ITEM = {"kind": "family", "side": "siam", "make": "HONDA", "key": "3",
+             "fingerprint": "eeeeeeeeeeeeeeee"}
+
+
+def test_india_row_can_take_several_families(ref):
+    rv.record(SIAM_ITEM, ["city", "AMAZE"], ref_dir=ref)
+    df = rv.read_decisions("family", ref)
+    assert df[["side", "key", "family"]].values.tolist() == [
+        ["siam", "3", "CITY"], ["siam", "3", "AMAZE"]]
+
+
+def test_semicolon_text_works_like_a_list_and_replaces_earlier_choice(ref):
+    rv.record(SIAM_ITEM, "CITY; AMAZE; CITY HYBRID", ref_dir=ref)
+    rv.record(SIAM_ITEM, "amaze", ref_dir=ref)                  # a new decision replaces all rows
+    assert rv.read_decisions("family", ref).family.tolist() == ["AMAZE"]
+
+
+@pytest.mark.parametrize("item, decision, message", [
+    (SIAM_ITEM, ["none", "CITY"], "cannot be combined"),
+    (FAMILY_ITEM, ["CITY", "AMAZE"], "one family"),             # a US model name maps to one family
+    (SIAM_ITEM, [], "choose"),
+])
+def test_bad_family_combinations_are_refused(ref, item, decision, message):
+    with pytest.raises(ValueError, match=message):
+        rv.record(item, decision, ref_dir=ref)
+    assert not (ref / rv.FILES["family"]).exists()
+
+
+def test_undo_restores_several_family_rows(ref):
+    rv.record(SIAM_ITEM, ["CITY", "AMAZE"], ref_dir=ref)
+    changes = rv.record(SIAM_ITEM, ["CITY HYBRID"], ref_dir=ref)
+    rv.undo(changes, ref)
+    assert sorted(rv.read_decisions("family", ref).family) == ["AMAZE", "CITY"]
+
+
+def test_queue_shows_all_families_and_variant_text(tmp_path, ref):
+    db = _db(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("ALTER TABLE siam_recalls ADD COLUMN variant VARCHAR")
+    con.execute("UPDATE siam_recalls SET variant = 'City & Amaze' WHERE csv_row = 3")
+    con.close()
+    item = _queue(tmp_path, ref).set_index("key").loc["3"]
+    assert "City & Amaze" in item.india_text and item.india_text.startswith("Mystery Van")
+    rv.record({**item.to_dict(), "key": "3"}, ["CITY", "AMAZE"], ref_dir=ref)
+    row = _queue(tmp_path, ref).set_index("key").loc["3"]
+    assert (row.status, row.previous_decision) == ("reviewed", "CITY; AMAZE")

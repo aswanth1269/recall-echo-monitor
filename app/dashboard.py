@@ -369,6 +369,8 @@ def _save(item: dict, decision: str, **kw) -> None:
     st.session_state["review_last"] = changes
     st.session_state["review_error"] = None
     st.session_state["review_note"] = ""
+    for k in ("review_family_multi", "review_family_choice"):   # next item starts fresh
+        st.session_state.pop(k, None)
     if item["kind"] != "pair":
         st.session_state["review_needs_rebuild"] = True
 
@@ -408,7 +410,13 @@ with tab_review:
         extra = f3.checkbox("Also show LLM 'none' family answers")
         only_sample = f3.checkbox(f"Only the fixed sample of {review.SAMPLE_N} LLM 'same' pairs",
                                   key="review_only_sample")
-        todo = review.outstanding(q, ds.ref_dir())
+        show_reviewed = f3.checkbox("Show already reviewed items (to change a decision)",
+                                    key="review_show_reviewed")
+        search = st.text_input("Find an item (model name, row, campaign or text)",
+                               key="review_search").strip().lower()
+        open_ids = set(review.outstanding(q, ds.ref_dir())["item_id"])
+        # with show_reviewed: also items decided already (before or since the last src.review)
+        todo = q[q["status"].isin(["open", "stale", "reviewed"])] if show_reviewed             else q[q["item_id"].isin(open_ids)]
         orders = list(review.DEFAULT_ORDERS) + ([6] if extra else [])
         todo = todo[todo["order"].astype(int).isin(orders)]
         if kinds:
@@ -422,7 +430,11 @@ with tab_review:
             st.caption(f"Sample: {done} of {len(sample)} reviewed (random, seed "
                        f"{review.SAMPLE_SEED}; the same pairs every time). Counts update after "
                        "python -m src.review.")
+        if search:
+            hay = (todo["key"] + " " + todo["us_text"] + " " + todo["india_text"]).str.lower()
+            todo = todo[hay.str.contains(search, regex=False)]
         todo = todo[~todo["item_id"].isin(st.session_state.get("review_skipped", set()))]
+        todo = todo.sort_values("order", key=lambda o: o.astype(int), kind="stable")
         orphans = q[q["status"] == "orphaned"]
         if len(orphans):
             st.caption(f"{len(orphans)} saved decision(s) match nothing in the current data; "
@@ -436,6 +448,11 @@ with tab_review:
             st.markdown(f"<span class='note'>{len(todo):,} item(s) to review · "
                         f"{html.escape(KIND_NAMES[item['kind']])} · {html.escape(item['make'])}"
                         "</span>", unsafe_allow_html=True)
+            if item["item_id"] not in open_ids and item["status"] != "stale":
+                prev = ds.text(item.get("previous_decision"))
+                st.markdown("<div class='card note'>You already decided this item"
+                            + (f": <b>{html.escape(prev)}</b>" if prev else "")
+                            + ". Saving a new decision replaces it.</div>", unsafe_allow_html=True)
             if item["status"] == "stale":
                 st.markdown("<div class='card note'>The text changed since you decided "
                             f"<b>{html.escape(item['previous_decision'])}</b>. Please decide again."
@@ -466,12 +483,22 @@ with tab_review:
                 vocab = model_family.load_vocab(ds.ref_dir() / "model_families.csv").get(item["make"], [])
                 options = vocab + ["none"]
                 llm_choice = item.get("llm_answer") or ""
-                st.selectbox("Family", options, key="review_family_choice",
-                             index=options.index(llm_choice) if llm_choice in options else len(options) - 1)
-                st.caption(f"LLM chose: {llm_choice or 'nothing (rule found no family)'}")
+                before = [f for f in (item.get("previous_decision") or "").split("; ") if f in options]
+                if item["side"] == "siam":
+                    # an India row can name several models ("A6, A7 & A8"): pick every family
+                    st.multiselect("Families (pick every model the row names, or none)", options,
+                                   default=before, key="review_family_multi")
+                    st.caption("Read the variant text above: pick each model family it names.")
+                    pick = lambda: st.session_state.get("review_family_multi", [])  # noqa: E731
+                else:
+                    first = before[0] if before else llm_choice
+                    st.selectbox("Family", options, key="review_family_choice",
+                                 index=options.index(first) if first in options else len(options) - 1)
+                    st.caption(f"LLM chose: {llm_choice or 'nothing (rule found no family)'}")
+                    pick = lambda: st.session_state["review_family_choice"]  # noqa: E731
                 st.text_input("Note (optional)", key="review_note")
-                st.button("Confirm", key="review_confirm", on_click=lambda it=item: _save(
-                    it, st.session_state["review_family_choice"]))
+                st.button("Confirm", key="review_confirm",
+                          on_click=lambda it=item, get=pick: _save(it, get()))
 
             else:  # vocabulary
                 st.markdown(f"<div class='card'><h4>{html.escape(item['key'])}</h4>"
