@@ -1,2 +1,12 @@
 level,grp,n,median_days,p25_days,p75_days,india_first
-all,ALL,0,,,,0
+all,ALL,46,112.0,33.25,225.75,6
+make,AUDI,9,140.0,80.0,329.0,0
+make,BMW,4,196.0,111.0,232.25,1
+make,HONDA,7,32.0,21.0,223.5,1
+make,HYUNDAI,1,-88.0,-88.0,-88.0,1
+make,KIA,1,342.0,342.0,342.0,0
+make,MERCEDES-BENZ,21,113.0,39.0,201.0,3
+make,TOYOTA,2,26.0,13.0,39.0,0
+make,VOLVO,1,0.0,0.0,0.0,0
+segment,luxury,35,133.0,43.0,220.5,4
+segment,mass_market,11,32.0,10.5,197.0,2

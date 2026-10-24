@@ -1,3 +1,5 @@
-matcher,n,positives,tp,fp,fn,tn,precision,precision_n,recall,recall_n,f1,f1_n,threshold,note,labelled_by
-llm,30,4,4,1,0,25,,5,,4,,9,,prompt tuned on these pairs,a person for all 30 pairs (human_labels.csv)
-baseline,30,4,3,1,1,25,,4,,4,,8,0.2177,threshold chosen on these same pairs (flatters the baseline),a person for all 30 pairs (human_labels.csv)
+matcher,n,positives,tp,fp,fn,tn,n_dropped,precision,precision_n,recall,recall_n,f1,f1_n,threshold,note,labelled_by
+llm,29,4.0,4,1,0.0,24.0,1.0,,5,,4.0,,9.0,,prompt tuned on these pairs,a person for all 30 pairs (human_labels.csv)
+baseline,29,4.0,3,1,1.0,24.0,1.0,,4,,4.0,,8.0,0.2179,threshold chosen on these same pairs (flatters the baseline),a person for all 30 pairs (human_labels.csv)
+llm_reviewed,60,,53,7,,,,0.8833,60,,,,,,precision from human review of LLM same pairs; not recall,a person (review queue)
+llm_reviewed_sample,60,,53,7,,,,0.8833,60,,,,,,precision on the fixed random sample of 60 LLM same pairs; not recall,a person (review queue)
