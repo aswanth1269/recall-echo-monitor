@@ -14,3 +14,63 @@ pair_id,decision,note,fingerprint,reviewed_at
 26V179000-300,different,no India text,8568e6f81b8cbe7e,2026-10-23
 26V341000-300,different,no India text,65c7d9849d4ebb01,2026-10-23
 16V171000-293,different,"too vague, India says software update only",8120c64c276c9ed5,2026-10-23
+17V032000-279,same,"A4/A6 Takata passenger inflator bursts, both sides",e519b6e1dd194c5c,2026-10-24
+18V229000-283,same,"A6 2.0T coolant pump moisture, fire risk, both sides",48d0f5f24639c037,2026-10-24
+18V427000-279,same,"A4/A6 Takata passenger inflator bursts, both sides",74148eb95f342236,2026-10-24
+21V295000-271,same,"rear axle nut breaks, A5/A8/Q8, both sides",b5cc09705dffc62b,2026-10-24
+21V947000-269,same,"Q5 gateway unit liquid under rear seat, both sides",fb7f4e1cbb5fe9c9,2026-10-24
+22V155000-264,same,"A6/A7 fuel level sender sticks, both sides",6a81b1d19a8cdc51,2026-10-24
+22V178000-267,different,"unsure, India says only mesh size of oil strainer",b106d5abf24c90f6,2026-10-24
+23V868000-260,same,"Q7 driver seat side airbag mounting, both sides",c2737d533502df52,2026-10-24
+24V228000-256,same,"e-tron GT HV battery module fault, both sides",5d71c5fbc4bcfcba,2026-10-24
+24V621000-252,same,"e-tron brake pedal to booster rod loosens, both sides",d2f381b983e01375,2026-10-24
+14V428000-20,same,"3 Series passenger inflator rupture, both sides",2417fe249aaa9b28,2026-10-24
+17V676000-24,same,"3 Series blower controller connector overheats, both sides",0370b6c02dc31a29,2026-10-24
+19V698000-4,different,"unsure, US inflator explodes vs India NADI leak",369ae386e0a8093c,2026-10-24
+19V853000-9,same,"E46 NADI driver inflator moisture leak, both sides",66827c0f020a209b,2026-10-24
+20V484000-12,same,"X6 roof spoiler bonding, both sides",1e6ddf8d38b4cac0,2026-10-24
+15V370000-48,same,"Accord passenger inflator rupture, both sides",4e2a8c1688acc001,2026-10-24
+15V370000-50,same,"Civic passenger inflator rupture, both sides",82754e418f9de44b,2026-10-24
+15V370000-51,same,"CR-V passenger inflator rupture, both sides",3d14274636e94775,2026-10-24
+16V344000-52,same,"Fit/Jazz passenger inflator rupture, both sides",fd6d8034271f9183,2026-10-24
+17V029000-46,same,"Fit/Jazz passenger inflator rupture, both sides",754311238630c3db,2026-10-24
+17V030000-47,same,"Accord passenger inflator rupture, both sides",7062aceb2d1ce73f,2026-10-24
+18V042000-35,same,"CR-V frontal inflator rupture, both sides",5caf0196b1bf7a7a,2026-10-24
+19V499000-37,same,"Accord driver inflator rupture, India covers driver",df85305963b3adc5,2026-10-24
+19V499000-38,same,"Civic driver inflator rupture, India covers driver",99d5cac491257560,2026-10-24
+20V027000-35,same,"CR-V driver inflator rupture, India covers driver",b3e108fc8464a5d4,2026-10-24
+21V127000-84,same,"Kona EV battery cell short circuit, both sides",a213181db3b5c674,2026-10-24
+24V200000-89,same,"EV6 ICCU fault, 12V battery, both sides",aece834df51f2de4,2026-10-24
+17V241000-228,different,"unsure, US water ingress vs India internal EPS error",de5eb5b66c7bb4ba,2026-10-24
+17V574000-228,same,"C205/E213 EPS unit internal fault, assist off",ad94fa9411eb668f,2026-10-24
+19V788000-219,same,"belt buckle falsely unfastened, PRE-SAFE off, both sides",4146c14c9384388f,2026-10-24
+19V820000-221,same,"G-Class front door harness damage, both sides",0fb7e54fad0624eb,2026-10-24
+20V048000-220,same,"AMG V8 turbo oil feed line leak, both sides",614af2e00e3661b6,2026-10-24
+20V173000-217,same,"S560 engine oil closure plugs leak, both sides",63b90b1b86ae6424,2026-10-24
+20V449000-210,same,"C205/S222 belt warning solid lamp only, both sides",0e6e440e80cd6cab,2026-10-24
+21V00J000-188,same,"S223 eCall communication module fails, both sides",c178146dc03cff81,2026-10-24
+21V406000-194,same,"C205 rear headrest fixation, both sides",7bea7efe774d2d6c,2026-10-24
+22V124000-173,same,"S223 airbag control unit not bolted, both sides",2a72ddbd3b6ec868,2026-10-24
+22V680000-170,same,"GLE/GLS rear door trim bar detaches, both sides",fe05b4c377bdc63f,2026-10-24
+22V732000-160,same,"GLS third row backrest lock fails, both sides",465ec9fbcb6d5574,2026-10-24
+22V955000-156,same,"ML/GLE water in wheel well, fuel pump unit",a4535f1e4acf7f31,2026-10-24
+22V955000-158,same,"GLE Coupe water in wheel well, fuel pump unit",6e524ef7136f6a00,2026-10-24
+23V177000-159,same,"GLE/GLS AC drain hoses leak inside, both sides",192b97e5518bbe24,2026-10-24
+23V178000-170,same,"GLE/GLS rear door trim bar detaches, both sides",1f41f78f4e3d2017,2026-10-24
+23V405000-150,same,"EQS electric drivetrain software, loss of drive",c8fb727b16e7380b,2026-10-24
+23V835000-129,different,"different part, 12V driver seat vs 48V passenger ground",31125fb7e0b802dc,2026-10-24
+23V854000-111,same,"C205 roof panel bonding after repair, both sides",2e2e4fe32fd2b154,2026-10-24
+23V880000-148,same,"fuel delivery module, pump shuts off, both sides",c7c15ccb546c5c83,2026-10-24
+23V880000-153,same,"fuel delivery module, pump shuts off, both sides",cea9a7b2559cd41b,2026-10-24
+24V118000-126,same,"GLE 450 downshift fault stalls engine, both sides",09cb2701da3e2888,2026-10-24
+24V118000-146,same,"GLE 450 downshift fault stalls engine, both sides",3d12881136690512,2026-10-24
+24V207000-130,same,"GLE 48V passenger seat ground loose, both sides",22906a22fbdeeedc,2026-10-24
+24V446000-144,different,"different part, pre-fuse box bolt vs 80A fuses",55045bf1ba55c9f3,2026-10-24
+25V129000-99,same,"S63 E Perf HV starter generator unit, both sides",619440659229334e,2026-10-24
+25V255000-96,same,"SL fuse box wrongly reworked, both sides",ee23c3ce60250139,2026-10-24
+25V255000-97,same,"GLC fuse box wrongly reworked, both sides",68938f8484b38360,2026-10-24
+16V127000-343,different,"unsure, India only says abnormal passenger airbag deployment",51d8b6ce4af1e32e,2026-10-24
+17V006000-343,different,"unsure, India only says abnormal passenger airbag deployment",27a092cf00b9dc97,2026-10-24
+18V085000-342,same,"Prius airbag sensor fails, both sides",57702b6aef357f96,2026-10-24
+20V012000-334,same,"Denso low pressure fuel pump fails, both sides",896ca88ee7fbb94f,2026-10-24
+20V144000-354,same,"Volvo AEB software hardware mismatch, both sides",90402bd7f1dff6ee,2026-10-24
