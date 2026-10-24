@@ -156,6 +156,30 @@ def llm_predictions(con: duckdb.DuckDBPyConnection, gt: pd.DataFrame) -> pd.Data
     return m[m.pair_id.isin(gt.pair_id)]
 
 
+DROPPED_REASON = ("no longer a candidate pair: after the family review the campaign and the "
+                  "India row no longer share a model family, so the matcher never sees it")
+
+
+def dropped_pairs(con: duckdb.DuckDBPyConnection, gt: pd.DataFrame) -> pd.DataFrame:
+    """Ground-truth pairs that are no longer in candidate_pairs (pair_id, label, label_source, reason).
+
+    Such a pair cannot be scored: the pipeline never sends it to a matcher. It is
+    reported, not silently dropped. A pair still in candidate_pairs but missing
+    from matches is a different problem (a stale matcher run) and still raises.
+    """
+    con.register("gt_keys", gt[["pair_id", "CAMPNO", "csv_row"]])
+    try:
+        kept = {r[0] for r in con.execute("""SELECT g.pair_id FROM gt_keys AS g
+                     JOIN candidate_pairs AS p
+                       ON p.CAMPNO = g.CAMPNO AND p.csv_row = g.csv_row""").fetchall()}
+    finally:
+        con.unregister("gt_keys")
+    d = gt[~gt.pair_id.isin(kept)]
+    return pd.DataFrame({"pair_id": d.pair_id, "label": d.label,
+                         "label_source": d.get("label_source", "claude"),
+                         "reason": DROPPED_REASON}).reset_index(drop=True)
+
+
 def baseline_scores(con: duckdb.DuckDBPyConnection, gt: pd.DataFrame) -> pd.DataFrame:
     """pair_id, tfidf score from candidate_pairs."""
     con.register("gt_keys", gt[["pair_id", "CAMPNO", "csv_row"]])
@@ -243,6 +267,7 @@ def _revision_lines(df: pd.DataFrame) -> list[str]:
 def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by: str,
                     gt_path: Path, reviewed: dict | None = None) -> str:
     df = result["pairs"]
+    dropped = result.get("dropped", pd.DataFrame(columns=["pair_id", "label", "label_source", "reason"]))
     n_pos = int(df.label.eq(POSITIVE).sum())
     try:
         shown_path = gt_path.resolve().relative_to(ROOT).as_posix()
@@ -250,8 +275,10 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
         shown_path = gt_path.as_posix()
     lines = [
         "# Matcher evaluation", "",
-        f"Ground truth: `{shown_path}` - {result['n']} pairs, "
-        f"{n_pos} labelled `same`, {result['n'] - n_pos} `different`. Positive class: `same`.", "",
+        f"Ground truth: `{shown_path}` - {result['n']} pairs scored"
+        + (f", {len(dropped)} dropped (listed below)" if len(dropped) else "")
+        + f"; {n_pos} labelled `same`, {result['n'] - n_pos} `different`. "
+        "Positive class: `same`.", "",
         f"**Who labelled it:** {labelled_by}. "
         + ("These are a person's blind labels." if result.get("all_human") else
            "Until a person has labelled every pair, the numbers below partly measure "
@@ -304,6 +331,15 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
                   "pairs were not skipped.", ""]
 
     dis = df[(df.llm_pred != df.label) | (df.base_pred != df.label)].sort_values("pair_id")
+    if len(dropped):
+        lines += ["## Test pairs no longer scored", "",
+                  f"{len(dropped)} labelled pair(s) are no longer candidate pairs, so neither "
+                  "matcher is scored on them. They stay in the label files.", ""]
+        lines += [f"- `{r.pair_id}`: labelled `{r.label}` by "
+                  f"{'a person' if r.label_source == 'human' else 'Claude'} - {r.reason}."
+                  for r in dropped.itertuples(index=False)]
+        lines += [""]
+
     lines += ["## Disagreements", "",
               f"{len(dis)} pair(s) where at least one matcher differs from the ground truth.", ""]
     t = texts.set_index("pair_id")
@@ -339,7 +375,8 @@ def summary_frame(result: dict[str, object], reviewed: dict | None = None,
     rows = []
     for name in ("llm", "baseline"):
         c, m = result[name]["confusion"], result[name]["metrics"]
-        row = {"matcher": name, "n": result["n"], "positives": c["tp"] + c["fn"], **c}
+        row = {"matcher": name, "n": result["n"], "positives": c["tp"] + c["fn"], **c,
+               "n_dropped": len(result.get("dropped", ()))}
         for k in ("precision", "recall", "f1"):
             value, _num, den = m[k]
             row[k] = round(value, 4) if den >= MIN_N else None
@@ -380,9 +417,13 @@ def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
     before = file_digest(gt_path)
     hl_path = human_labels_path(gt_path)
     human_before = file_digest(hl_path) if hl_path.exists() else None
-    gt = load_ground_truth(gt_path)
+    gt_all = load_ground_truth(gt_path)
     con = duckdb.connect(str(db_path), read_only=True)
     try:
+        dropped = dropped_pairs(con, gt_all)
+        gt = gt_all[~gt_all.pair_id.isin(dropped.pair_id)]
+        if gt.empty:
+            raise ValueError("no ground-truth pair is a candidate pair any more; nothing to score")
         llm = llm_predictions(con, gt)
         base = baseline_scores(con, gt)
         texts = load_pairs(con, gt[["CAMPNO", "csv_row"]])
@@ -391,7 +432,9 @@ def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
         con.close()
     result = evaluate(gt.drop(columns=["CAMPNO", "csv_row"]).merge(
         texts[["pair_id", "make"]], on="pair_id"), llm, base)
-    result["all_human"] = human_verified(gt)
+    result["dropped"] = dropped
+    result["all_human"] = human_verified(gt_all)
+    gt = gt_all                                   # who labelled: all 30, dropped included
     labelled_by = labelled_by_text(gt)
     out_md.parent.mkdir(parents=True, exist_ok=True)
     out_md.write_text(render_markdown(result, texts, labelled_by, gt_path, reviewed), encoding="utf-8")

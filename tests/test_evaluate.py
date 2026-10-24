@@ -309,3 +309,44 @@ def test_report_without_a_saved_sample_has_no_sample_line(tmp_path, gt_file):
     out = tmp_path / "eval.md"
     ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out)
     assert "Random sample" not in out.read_text(encoding="utf-8")
+
+
+# ---------- test pairs that are no longer candidate pairs ----------
+
+def _drop_candidate(db: Path, pair: str) -> None:
+    campno, row = pair.split("-")
+    con = duckdb.connect(str(db))
+    con.execute("DELETE FROM candidate_pairs WHERE CAMPNO = ? AND csv_row = ?", [campno, int(row)])
+    con.execute("DELETE FROM matches WHERE pair_id = ?", [pair])
+    con.close()
+
+
+def test_dropped_pairs_lists_test_pairs_that_are_no_longer_candidates(tmp_path, gt_file):
+    db = _db(tmp_path)
+    _drop_candidate(db, "D-4")
+    con = duckdb.connect(str(db), read_only=True)
+    d = ev.dropped_pairs(con, ev.load_ground_truth(gt_file))
+    assert d.pair_id.tolist() == ["D-4"] and d.label.tolist() == ["different"]
+    assert "no longer a candidate pair" in d.reason.iloc[0]
+
+
+def test_build_scores_the_rest_and_reports_the_dropped_pair(tmp_path, gt_file):
+    db = _db(tmp_path)
+    _drop_candidate(db, "D-4")
+    out = tmp_path / "eval.md"
+    r = ev.build(db_path=db, gt_path=gt_file, out_md=out)
+    assert r["n"] == 3 and r["dropped"].pair_id.tolist() == ["D-4"]
+    text = out.read_text(encoding="utf-8")
+    assert "3 pairs scored, 1 dropped" in text
+    assert "## Test pairs no longer scored" in text and "`D-4`" in text
+    summary = pd.read_csv(tmp_path / "eval_summary.csv").set_index("matcher")
+    assert summary.loc["llm", "n"] == 3 and summary.loc["llm", "n_dropped"] == 1
+
+
+def test_candidate_without_a_matcher_result_still_stops(tmp_path, gt_file):
+    db = _db(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("DELETE FROM matches WHERE pair_id = 'D-4'")     # still a candidate pair
+    con.close()
+    with pytest.raises(ValueError, match="run python -m src.matcher"):
+        ev.build(db_path=db, gt_path=gt_file, out_md=tmp_path / "eval.md")
