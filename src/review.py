@@ -443,11 +443,16 @@ def precision(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
 
 QUEUE_CSV = ROOT / "data/clean/review_queue.csv"
 SHEET_INPUT_COLUMNS = ["decision", "note", "from_name", "source_url", "retrieved_on"]
-# Fixed-seed sample of LLM `same` pairs, for estimating matcher precision
+# Fixed-seed random sample of LLM `same` pairs, for estimating matcher precision
 # without reviewing all of them. Drawn from every LLM `same` pair whatever its
-# status, so the same pairs stay in the sample while you review them.
+# status, so reviewing does not move it. The first time the sample is used for
+# review (the dashboard checkbox) its pair_ids are saved to SAMPLE_FILE; from then
+# on the file is the sample, so a later rebuild cannot swap pairs in or out.
+# Delete the file to draw again.
 SAMPLE_N = 60
-SAMPLE_SEED = 20261024
+SAMPLE_SEED = 42
+SAMPLE_FILE = "review_sample.csv"
+SAMPLE_COLUMNS = ["pair_id", "seed", "drawn_on"]
 
 
 def sample_item_ids(q: pd.DataFrame, n: int = SAMPLE_N, seed: int = SAMPLE_SEED) -> set[str]:
@@ -455,6 +460,60 @@ def sample_item_ids(q: pd.DataFrame, n: int = SAMPLE_N, seed: int = SAMPLE_SEED)
     pool = q[(q["kind"] == "pair") & (q["order"].astype(int) == ORDER["same"])]
     ids = pool["item_id"].drop_duplicates().sort_values().reset_index(drop=True)
     return set(ids.sample(n=min(n, len(ids)), random_state=seed))
+
+
+def _sample_pair_ids(q: pd.DataFrame, n: int, seed: int) -> list[str]:
+    keyed = q.set_index("item_id")["key"]
+    return sorted({_s(keyed.loc[i]) for i in sample_item_ids(q, n, seed)})
+
+
+def read_sample(ref_dir: Path = REF_DIR) -> list[str] | None:
+    """pair_ids in the saved sample, or None when no sample has been saved yet."""
+    path = ref_dir / SAMPLE_FILE
+    if not path.exists():
+        return None
+    return pd.read_csv(path, dtype=str, keep_default_na=False)["pair_id"].tolist()
+
+
+def frozen_sample(q: pd.DataFrame, ref_dir: Path = REF_DIR, n: int = SAMPLE_N,
+                  seed: int = SAMPLE_SEED, today: str | None = None) -> list[str]:
+    """pair_ids of the review sample: read from SAMPLE_FILE, or drawn from q and saved there.
+
+    Nothing is saved while there are no LLM `same` pairs to draw from.
+    """
+    saved = read_sample(ref_dir)
+    if saved is not None:
+        return saved
+    ids = _sample_pair_ids(q, n, seed)
+    if ids:
+        today = today or date.today().isoformat()
+        _write_atomic(ref_dir / SAMPLE_FILE,
+                      pd.DataFrame({"pair_id": ids, "seed": seed, "drawn_on": today},
+                                   columns=SAMPLE_COLUMNS))
+    return ids
+
+
+def in_sample(q: pd.DataFrame, pair_ids) -> pd.Series:
+    """True for the pair items whose pair_id is in pair_ids."""
+    return (q["kind"] == "pair") & q["key"].isin(set(pair_ids))
+
+
+def sample_precision(con: duckdb.DuckDBPyConnection,
+                     ref_dir: Path = REF_DIR) -> dict | None:
+    """Matcher precision on the saved sample only (None until the sample is saved)."""
+    ids = read_sample(ref_dir)
+    if ids is None:
+        return None
+    con.register("review_sample_df", pd.DataFrame({"pair_id": ids}, dtype=str))
+    try:
+        row = con.execute(_sql("review_precision_sample")).df().iloc[0]
+    finally:
+        con.unregister("review_sample_df")
+    return {"n_sample": len(ids), "n_reviewed": int(row.n_reviewed),
+            "n_confirmed": int(row.n_confirmed),
+            "precision": None if pd.isna(row.precision) else float(row.precision),
+            "n_cannot_judge": int(row.n_cannot_judge),
+            "n_not_in_matches": int(row.n_not_in_matches)}
 
 
 def write_queue(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR,
@@ -465,7 +524,9 @@ def write_queue(db_path: Path = DB_PATH, ref_dir: Path = REF_DIR,
         q = queue(con, ref_dir)
     finally:
         con.close()
-    sheet = q.assign(in_sample=q["item_id"].isin(sample_item_ids(q)),
+    saved = read_sample(ref_dir)          # the saved sample, else a preview of it (not saved)
+    ids = saved if saved is not None else _sample_pair_ids(q, SAMPLE_N, SAMPLE_SEED)
+    sheet = q.assign(in_sample=in_sample(q, ids),
                      **{c: "" for c in SHEET_INPUT_COLUMNS})
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     excel_safe(sheet).to_csv(out_csv, index=False, encoding="utf-8")

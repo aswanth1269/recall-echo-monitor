@@ -413,7 +413,7 @@ with tab_review:
         kinds = f1.multiselect("Kind", list(KIND_NAMES), format_func=KIND_NAMES.get)
         makes = f2.multiselect("Carmaker ", sorted(q["make"].unique()))
         extra = f3.checkbox("Also show LLM 'none' family answers")
-        only_sample = f3.checkbox(f"Only the fixed sample of {review.SAMPLE_N} LLM 'same' pairs",
+        only_sample = f3.checkbox(f"Random sample of {review.SAMPLE_N} LLM same pairs",
                                   key="review_only_sample")
         show_reviewed = f3.checkbox("Show already reviewed items (to change a decision)",
                                     key="review_show_reviewed")
@@ -429,12 +429,15 @@ with tab_review:
         if makes:
             todo = todo[todo["make"].isin(makes)]
         if only_sample:
-            sample = review.sample_item_ids(q)
-            todo = todo[todo["item_id"].isin(sample)]
-            done = int((q["item_id"].isin(sample) & (q["status"] == "reviewed")).sum())
+            # saved to data/reference/review_sample.csv the first time; read back after that
+            sample = review.frozen_sample(q, ds.ref_dir())
+            todo = todo[review.in_sample(todo, sample)]
+            done = int((review.in_sample(q, sample) & (q["status"] == "reviewed")).sum())
+            gone = len(set(sample) - set(q.loc[q["kind"] == "pair", "key"]))
             st.caption(f"Sample: {done} of {len(sample)} reviewed (random, seed "
-                       f"{review.SAMPLE_SEED}; the same pairs every time). Counts update after "
-                       "python -m src.review.")
+                       f"{review.SAMPLE_SEED}, saved in data/reference/{review.SAMPLE_FILE}; "
+                       "the same pairs every time). Counts update after python -m src.review."
+                       + (f" {gone} sampled pair(s) are no longer in the queue." if gone else ""))
         if search:
             hay = (todo["key"] + " " + todo["us_text"] + " " + todo["india_text"]).str.lower()
             todo = todo[hay.str.contains(search, regex=False)]

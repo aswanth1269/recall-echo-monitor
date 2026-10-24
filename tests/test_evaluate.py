@@ -281,3 +281,31 @@ def test_report_says_when_nothing_is_reviewed_yet(tmp_path, gt_file):
     out = tmp_path / "eval.md"
     ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out)
     assert "No LLM `same` pairs have been reviewed yet" in out.read_text(encoding="utf-8")
+
+
+def test_report_and_summary_include_the_random_sample(tmp_path, gt_file):
+    db = _db(tmp_path)
+    con = duckdb.connect(str(db))
+    con.execute("""CREATE TABLE matches_reviewed AS
+        SELECT 'P' || i AS pair_id, 'same' AS label, 'reviewed' AS review_status,
+               CASE WHEN i < 10 THEN 'same' ELSE 'different' END AS final_label
+        FROM range(14) AS t(i)""")
+    con.close()
+    pd.DataFrame({"pair_id": [f"P{i}" for i in range(2, 14)] + ["NEW-1"], "seed": 42,
+                  "drawn_on": "2026-10-24"}).to_csv(gt_file.parent / "review_sample.csv",
+                                                    index=False)
+    out = tmp_path / "eval.md"
+    ev.build(db_path=db, gt_path=gt_file, out_md=out)
+    text = out.read_text(encoding="utf-8")
+    assert "**Random sample** (13 LLM `same` pairs" in text
+    assert "a person confirmed 8 of 12: precision 8 / 12 = 0.667 (n=12)" in text
+    assert "no longer a pair: 1." in text
+    summary = pd.read_csv(tmp_path / "eval_summary.csv")
+    row = summary[summary.matcher == "llm_reviewed_sample"].iloc[0]
+    assert (row.n, row.tp, row.fp, row.precision, row.precision_n) == (12, 8, 4, 0.6667, 12)
+
+
+def test_report_without_a_saved_sample_has_no_sample_line(tmp_path, gt_file):
+    out = tmp_path / "eval.md"
+    ev.build(db_path=_db(tmp_path), gt_path=gt_file, out_md=out)
+    assert "Random sample" not in out.read_text(encoding="utf-8")

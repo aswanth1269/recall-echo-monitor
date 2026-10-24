@@ -373,11 +373,13 @@ def test_apply_with_no_decisions_keeps_text_columns(tmp_path, ref):
 
 # ---------- fixed-seed sample of LLM `same` pairs ----------
 
-def _same_queue(n_same: int) -> pd.DataFrame:
-    rows = [{"item_id": f"pair||X|C{i:03d}-1", "kind": "pair", "order": 5,
-             "status": "open"} for i in range(n_same)]
-    rows += [{"item_id": "pair||X|NR-1", "kind": "pair", "order": 4, "status": "open"},
-             {"item_id": "family|nhtsa|X|M", "kind": "family", "order": 1, "status": "open"}]
+def _same_queue(n_same: int, start: int = 0) -> pd.DataFrame:
+    rows = [{"item_id": f"pair||X|C{i:03d}-1", "kind": "pair", "key": f"C{i:03d}-1",
+             "order": 5, "status": "open"} for i in range(start, start + n_same)]
+    rows += [{"item_id": "pair||X|NR-1", "kind": "pair", "key": "NR-1", "order": 4,
+              "status": "open"},
+             {"item_id": "family|nhtsa|X|M", "kind": "family", "key": "M", "order": 1,
+              "status": "open"}]
     return pd.DataFrame(rows)
 
 
@@ -397,6 +399,86 @@ def test_sample_is_fixed_and_ignores_row_order_and_status():
 
 def test_sample_smaller_pool_takes_everything():
     assert len(rv.sample_item_ids(_same_queue(7), n=60)) == 7
+
+
+def test_sample_seed_is_42():
+    assert rv.SAMPLE_SEED == 42 and rv.SAMPLE_N == 60
+
+
+def test_frozen_sample_is_saved_once_and_never_redrawn(ref):
+    first = rv.frozen_sample(_same_queue(100), ref, today="2026-10-24")
+    saved = pd.read_csv(ref / rv.SAMPLE_FILE, dtype=str)
+    assert list(saved.columns) == rv.SAMPLE_COLUMNS
+    assert saved.pair_id.tolist() == first and len(first) == 60 and len(set(first)) == 60
+    assert set(saved.seed) == {"42"} and set(saved.drawn_on) == {"2026-10-24"}
+    # the queue changes completely (e.g. a rebuild); the saved sample does not
+    assert rv.frozen_sample(_same_queue(100, start=500), ref) == first
+    assert rv.read_sample(ref) == first
+
+
+def test_frozen_sample_is_the_same_draw_in_a_fresh_folder(tmp_path):
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir(), b.mkdir()
+    q = _same_queue(100)
+    assert rv.frozen_sample(q, a) == rv.frozen_sample(q.iloc[::-1], b)
+
+
+def test_frozen_sample_saves_nothing_without_same_pairs(ref):
+    assert rv.frozen_sample(_same_queue(0), ref) == []
+    assert not (ref / rv.SAMPLE_FILE).exists() and rv.read_sample(ref) is None
+
+
+def test_in_sample_marks_only_pair_items():
+    q = _same_queue(3)
+    assert q.loc[rv.in_sample(q, ["C001-1", "M"]), "key"].tolist() == ["C001-1"]
+
+
+def test_queue_sheet_uses_the_saved_sample(tmp_path, ref):
+    (ref / rv.SAMPLE_FILE).write_text("pair_id,seed,drawn_on\nOTHER-1,42,2026-10-24\n",
+                                      encoding="utf-8")
+    out = tmp_path / "queue.csv"
+    rv.write_queue(_db(tmp_path), ref, out)
+    sheet = pd.read_csv(out, dtype=str, keep_default_na=False)
+    assert (sheet.in_sample == "False").all()     # the saved sample wins over a fresh draw
+    assert rv.read_sample(ref) == ["OTHER-1"]      # and write_queue never rewrites it
+
+
+def test_queue_sheet_does_not_save_the_sample(tmp_path, ref):
+    rv.write_queue(_db(tmp_path), ref, tmp_path / "queue.csv")
+    assert not (ref / rv.SAMPLE_FILE).exists()
+
+
+def _sample_db(tmp_path):
+    con = duckdb.connect(str(tmp_path / "s.duckdb"))
+    con.execute("""CREATE TABLE matches_reviewed AS
+        SELECT 'P' || i AS pair_id, 'same' AS label, 'reviewed' AS review_status,
+               CASE WHEN i < 9 THEN 'same' WHEN i < 12 THEN 'different'
+                    WHEN i < 13 THEN 'cannot_judge' END AS final_label
+        FROM range(20) AS t(i)""")
+    con.execute("UPDATE matches_reviewed SET review_status = 'unreviewed' "
+                "WHERE final_label IS NULL")
+    return con
+
+
+def _write_sample(ref, ids):
+    pd.DataFrame({"pair_id": ids, "seed": 42, "drawn_on": "2026-10-24"}).to_csv(
+        ref / rv.SAMPLE_FILE, index=False)
+
+
+def test_sample_precision_counts_only_the_sample(tmp_path, ref):
+    con = _sample_db(tmp_path)
+    _write_sample(ref, [f"P{i}" for i in range(15)] + ["GONE-1"])
+    got = rv.sample_precision(con, ref)
+    assert got == {"n_sample": 16, "n_reviewed": 12, "n_confirmed": 9, "precision": 0.75,
+                   "n_cannot_judge": 1, "n_not_in_matches": 1}
+
+
+def test_sample_precision_is_suppressed_below_ten_and_none_without_a_sample(tmp_path, ref):
+    con = _sample_db(tmp_path)
+    assert rv.sample_precision(con, ref) is None
+    _write_sample(ref, ["P0", "P1", "P9"])
+    got = rv.sample_precision(con, ref)
+    assert (got["n_reviewed"], got["n_confirmed"], got["precision"]) == (3, 2, None)
 
 
 def test_queue_sheet_marks_the_sample(tmp_path, ref):

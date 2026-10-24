@@ -284,6 +284,20 @@ def test_review_tab_sample_filter_shows_only_sampled_same_pairs(review_project):
     assert "20V001000-1" in text and "Echo candidate" in text     # family item FIT filtered out
     assert "FIT" not in text.split("item(s) to review")[1]
     assert any("Sample: 1 of 2 reviewed" in c.value for c in review.caption)
+    saved = pd.read_csv(review_project / "data/reference/review_sample.csv", dtype=str)
+    assert sorted(saved.pair_id) == ["20V001000-1", "20V003000-3"] and set(saved.seed) == {"42"}
+
+
+def test_review_tab_sample_is_read_back_not_redrawn(review_project):
+    (review_project / "data/reference/review_sample.csv").write_text(
+        "pair_id,seed,drawn_on\n20V003000-3,42,2026-10-24\nGONE-1,42,2026-10-24\n",
+        encoding="utf-8")
+    at = _run(review_project)
+    at.checkbox(key="review_only_sample").check().run()
+    assert not at.exception, [e.value for e in at.exception]
+    caps = " ".join(c.value for c in at.tabs[3].caption)
+    assert "Sample: 1 of 2 reviewed" in caps and "1 sampled pair(s) are no longer" in caps
+    assert "20V001000-1" not in " ".join(m.value for m in at.tabs[3].markdown)
 
 
 # ---------- India rows with several families; going back to reviewed items ----------

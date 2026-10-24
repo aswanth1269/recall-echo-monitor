@@ -121,16 +121,22 @@ def labelled_by_text(gt: pd.DataFrame) -> str:
             f"{claude} for the other {n - k}")
 
 
-def reviewed_precision(con: duckdb.DuckDBPyConnection) -> dict | None:
-    """Matcher precision from the human review of LLM `same` pairs, or None before review."""
+def reviewed_precision(con: duckdb.DuckDBPyConnection,
+                       ref_dir: Path | None = None) -> dict | None:
+    """Matcher precision from the human review of LLM `same` pairs, or None before review.
+
+    With ref_dir, "sample" holds the same figure for the saved random sample
+    (review_sample.csv there), or None while no sample has been saved.
+    """
     tables = {r[0] for r in con.execute(
         "SELECT table_name FROM information_schema.tables").fetchall()}
     if "matches_reviewed" not in tables:
         return None
-    from src.review import precision      # imported here: review imports matcher
+    from src.review import precision, sample_precision   # here: review imports matcher
     row = precision(con).iloc[0]
     return {"n_reviewed": int(row.n_reviewed), "n_confirmed": int(row.n_confirmed),
-            "precision": None if pd.isna(row.precision) else float(row.precision)}
+            "precision": None if pd.isna(row.precision) else float(row.precision),
+            "sample": sample_precision(con, ref_dir) if ref_dir is not None else None}
 
 
 def file_digest(path: Path) -> str:
@@ -284,6 +290,18 @@ def render_markdown(result: dict[str, object], texts: pd.DataFrame, labelled_by:
                   f"{fmt_rate(ok / n, ok, n)}.",
                   "This is precision only. It says nothing about echoes the matcher missed; "
                   "recall comes from the ground-truth pairs above.", ""]
+    sample = (reviewed or {}).get("sample")
+    if sample is not None:
+        n, ok = sample["n_reviewed"], sample["n_confirmed"]
+        lines += [f"**Random sample** ({sample['n_sample']} LLM `same` pairs, fixed seed, "
+                  "listed in `data/reference/review_sample.csv`): "
+                  + (f"a person confirmed {ok} of {n}: precision {fmt_rate(ok / n, ok, n)}."
+                     if n else "none reviewed yet.")
+                  + f" Not yet reviewed: {sample['n_sample'] - n - sample['n_cannot_judge'] - sample['n_not_in_matches']};"
+                  f" cannot judge: {sample['n_cannot_judge']};"
+                  f" no longer a pair: {sample['n_not_in_matches']}.",
+                  "This is the unbiased figure: the sample was drawn before review, so hard "
+                  "pairs were not skipped.", ""]
 
     dis = df[(df.llm_pred != df.label) | (df.base_pred != df.label)].sort_values("pair_id")
     lines += ["## Disagreements", "",
@@ -340,6 +358,17 @@ def summary_frame(result: dict[str, object], reviewed: dict | None = None,
                      "threshold": None,
                      "note": "precision from human review of LLM same pairs; not recall",
                      "labelled_by": "a person (review queue)"})
+    sample = (reviewed or {}).get("sample")
+    if sample and sample["n_reviewed"]:
+        n, ok = sample["n_reviewed"], sample["n_confirmed"]
+        rows.append({"matcher": "llm_reviewed_sample", "n": n, "positives": None, "tp": ok,
+                     "fp": n - ok, "fn": None, "tn": None,
+                     "precision": round(ok / n, 4) if n >= MIN_N else None, "precision_n": n,
+                     "recall": None, "recall_n": None, "f1": None, "f1_n": None,
+                     "threshold": None,
+                     "note": (f"precision on the fixed random sample of {sample['n_sample']} "
+                              "LLM same pairs; not recall"),
+                     "labelled_by": "a person (review queue)"})
     return pd.DataFrame(rows)
 
 
@@ -357,7 +386,7 @@ def build(db_path: Path = DB_PATH, gt_path: Path = GROUND_TRUTH_CSV,
         llm = llm_predictions(con, gt)
         base = baseline_scores(con, gt)
         texts = load_pairs(con, gt[["CAMPNO", "csv_row"]])
-        reviewed = reviewed_precision(con)
+        reviewed = reviewed_precision(con, gt_path.parent)
     finally:
         con.close()
     result = evaluate(gt.drop(columns=["CAMPNO", "csv_row"]).merge(
